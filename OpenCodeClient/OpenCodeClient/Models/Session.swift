@@ -1,0 +1,41 @@
+//
+//  Session.swift
+//  OpenCodeClient
+//
+
+import Foundation
+
+struct Session: Codable, Identifiable {
+    let id: String
+    let slug: String
+    let projectID: String
+    let directory: String
+    let parentID: String?
+    let title: String
+    let version: String
+    let time: TimeInfo
+    let share: ShareInfo?
+    let summary: SummaryInfo?
+
+    struct TimeInfo: Codable {
+        let created: Int
+        let updated: Int
+    }
+
+    struct ShareInfo: Codable {
+        let url: String
+    }
+
+    struct SummaryInfo: Codable {
+        let additions: Int
+        let deletions: Int
+        let files: Int
+    }
+}
+
+struct SessionStatus: Codable {
+    let type: String // "idle" | "busy" | "retry"
+    let attempt: Int?
+    let message: String?
+    let next: Int?
+}
