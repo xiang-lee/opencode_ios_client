@@ -71,17 +71,6 @@ struct ChatTabView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                if let status = state.currentSessionStatus {
-                    HStack {
-                        Circle()
-                            .fill(statusColor(status))
-                            .frame(width: 8, height: 8)
-                        Text(statusLabel(status))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
-                }
 
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -169,6 +158,21 @@ struct ChatTabView: View {
                 .background(.bar)
             }
             .navigationTitle(state.currentSession?.title ?? "Chat")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if let status = state.currentSessionStatus {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(statusColor(status))
+                                .frame(width: 6, height: 6)
+                            Text(statusLabel(status))
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+            }
             .sheet(isPresented: $showSessionList) {
                 SessionListView(state: state)
             }
