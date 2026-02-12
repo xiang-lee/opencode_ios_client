@@ -23,6 +23,8 @@ final class AppState {
 
     var messages: [MessageWithParts] = []
     var partsByMessage: [String: [Part]] = [:]
+    /// Delta 累积：key = "messageID:partID"，用于打字机效果
+    var streamingPartTexts: [String: String] = [:]
 
     /// 固定三个模型，不再从 server 导入
     var modelPresets: [ModelPreset] = [
@@ -334,10 +336,27 @@ final class AppState {
                     sessionStatuses[sessionID] = decoded
                 }
             }
-        case "message.updated", "message.part.updated":
+        case "message.updated":
             if currentSessionID != nil {
+                streamingPartTexts = [:]
                 await loadMessages()
                 await loadSessionDiff()
+            }
+        case "message.part.updated":
+            if let sessionID = props["sessionID"]?.value as? String,
+               sessionID == currentSessionID {
+                if let delta = props["delta"]?.value as? String,
+                   let partObj = props["part"]?.value as? [String: Any],
+                   let msgID = partObj["messageID"] as? String,
+                   let partID = partObj["id"] as? String,
+                   !delta.isEmpty {
+                    let key = "\(msgID):\(partID)"
+                    streamingPartTexts[key] = (streamingPartTexts[key] ?? "") + delta
+                } else {
+                    streamingPartTexts = [:]
+                    await loadMessages()
+                    await loadSessionDiff()
+                }
             }
         case "permission.asked":
             if let sessionID = props["sessionID"]?.value as? String,

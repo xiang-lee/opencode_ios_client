@@ -22,18 +22,15 @@
 |------|------|------|
 | **Tool 完成后收起** | ✅ 已实现 | `ToolPartView`：running 展开，completed 收起 |
 | **Reasoning 展示** | ✅ 已实现 | 历史不显示；streaming 时动态显示，结束后删除 |
-| **Text/Reasoning delta 流式** | ❌ 待实现 | 解析 `delta` 增量追加，灰色字体、打字机效果 |
+| **Text/Reasoning delta 流式** | ✅ 已实现 | 解析 `delta` 增量追加，灰色字体、打字机效果 |
 
-## 4. 待实现：Delta 增量更新
+## 4. Delta 增量更新（已实现）
 
-当前 `handleSSEEvent` 对 `message.part.updated` 只做全量 reload。需改为：
+`handleSSEEvent` 对 `message.part.updated` 的处理：
 
-- 解析 `properties.delta` 与定位信息（messageID、partID）
-- 将 delta 追加到对应 Part 的 text（需维护 `streamingPartTexts` 等累积状态）
-- 有 delta 时增量更新；无 delta 时 fallback 全量 reload
+- 若有 `properties.delta` 且 `properties.part` 含 messageID/id：将 delta 追加到 `streamingPartTexts[messageID:partID]`
+- 否则：全量 reload 并清空 `streamingPartTexts`
 
-**API 参考**：GH #9480 确认 `{ kind: "delta", part: TextPart | ReasoningPart, delta?: string }` 结构。
+## 5. UI
 
-## 5. UI 调整
-
-- `StreamingReasoningView`：移除 "Thinking..." 标题与 ProgressView，仅用灰色字体展示 `part.text`（或累积的 delta 文本）
+- `StreamingReasoningView`：无 sync 栏，灰色字体展示累积文本（`streamingPartTexts` 或 `part.text`）

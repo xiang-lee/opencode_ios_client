@@ -87,7 +87,7 @@ struct ChatTabView: View {
                             MessageRowView(message: msg, state: state)
                         }
                         if let streamingPart = streamingReasoningPart {
-                            StreamingReasoningView(part: streamingPart)
+                            StreamingReasoningView(part: streamingPart, state: state)
                         }
                             Color.clear
                                 .frame(height: 1)
@@ -301,31 +301,24 @@ struct MessageRowView: View {
     }
 }
 
-/// 仅在 streaming 时显示，think 完成后消失
+/// 仅在 streaming 时显示，think 完成后消失。无 sync 栏，灰色字体打字机效果。
 struct StreamingReasoningView: View {
     let part: Part
+    @Bindable var state: AppState
+
+    private var displayText: String {
+        let key = "\(part.messageID):\(part.id)"
+        return state.streamingPartTexts[key] ?? part.text ?? ""
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                ProgressView()
-                    .scaleEffect(0.6)
-                Text("Thinking...")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.purple.opacity(0.7))
-            }
-            if let text = part.text, !text.isEmpty {
-                Text(text)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-            }
+        if !displayText.isEmpty {
+            Text(displayText)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .textSelection(.enabled)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.purple.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
