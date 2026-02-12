@@ -10,3 +10,4 @@
 ## 待办（Phase 3）
 
 - **Think Streaming delta**：解析 `message.part.updated` 的 `delta`，增量追加实现打字机效果（见 [THINK_STREAMING.md](THINK_STREAMING.md)）
+- **iPad / Vision Pro 布局**：无 Tab Bar；左右分栏（左 Files 预览、右 Chat）；Settings 作为第一行 toolbar 按钮（见 PRD §4.1.2）

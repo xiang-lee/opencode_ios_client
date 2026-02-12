@@ -36,6 +36,7 @@
 ## 待办
 
 - [ ] **Phase 3：Think Streaming**：delta 增量更新（见 [THINK_STREAMING.md](THINK_STREAMING.md)）；Tool 折叠/Reasoning 展示已实现
+- [ ] **Phase 3：iPad / Vision Pro 布局**：无 Tab，左右分栏（左 Files 预览、右 Chat），Settings 作为第一行 toolbar 按钮
 
 ## 遇到的问题
 

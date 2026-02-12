@@ -164,6 +164,13 @@ final class AppState {
 - **内容**：`GET /file/content?path=`；文本文件语法高亮，二进制显示类型提示
 - **Session Diff**：`GET /session/:id/diff` 获取变更列表，点击进入 unified diff 视图
 
+### 8. iPad / Vision Pro 布局（Phase 3）
+
+- **条件**：`horizontalSizeClass == .regular` 或 `userInterfaceIdiom == .pad` 时启用
+- **布局**：无 Tab Bar；左右分栏（如 `NavigationSplitView` 或 `HStack`）：左栏 Files（文件树 + 内容预览），右栏 Chat（消息流 + 输入框）
+- **Toolbar**：第一行统一：左（新建 Session、重命名、Session 列表）+ 右（模型切换、**Settings 按钮**）；Settings 点击以 sheet 打开
+- **实现**：`@Environment(\.horizontalSizeClass)` 分支，大屏时渲染 `SplitView`，小屏时渲染 `TabView`
+
 ---
 
 ## 实现规划
@@ -172,8 +179,8 @@ final class AppState {
 |-------|------|----------|
 | 1 | Server 连接、SSE、Session、消息发送、流式渲染 | 2–3 周 |
 | 2 | Part 渲染、权限手动批准、主题、`prompt_async` | 2 周 |
-| 3 | 文件树、Markdown 预览、文档 Diff、高亮 | 2–3 周 |
-| 4 | iPad 适配、mDNS、Widget 等 | 暂不实现 |
+| 3 | 文件树、Markdown 预览、文档 Diff、Think Streaming delta、**iPad/Vision Pro 分栏布局** | 2–3 周 |
+| 4 | mDNS、Widget 等 | 暂不实现 |
 
 ---
 

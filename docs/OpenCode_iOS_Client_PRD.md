@@ -72,9 +72,11 @@ OpenCode Server 支持可选的 Basic Auth（`OPENCODE_SERVER_PASSWORD`）。iOS
 
 ## 4. 功能规格
 
-### 4.1 Tab 结构
+### 4.1 布局结构
 
-App 采用底部 Tab Bar，三个 Tab：
+#### 4.1.1 iPhone：Tab Bar
+
+iPhone 采用底部 Tab Bar，三个 Tab：
 
 ```
 ┌─────────────────────────────────────┐
@@ -85,6 +87,30 @@ App 采用底部 Tab Bar，三个 Tab：
 │   💬 Chat  │  📁 Files  │  ⚙ Settings │
 └───────────┴───────────┴─────────────┘
 ```
+
+#### 4.1.2 iPad / Vision Pro：Split View（无 Tab）
+
+在 iPad 和 Apple Vision Pro 上，**不显示 Tab Bar**，采用左右分栏布局：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ [新建] [重命名] [Session 列表]     [GPT] [Opus] [GLM] [⚙]   │  ← 第一行：Session 操作 + 模型 + Settings 按钮
+├──────────────────────────┬──────────────────────────────────┤
+│                          │                                  │
+│     📁 Files Preview     │          💬 Chat                 │
+│     （左半屏）            │          （右半屏）             │
+│                          │                                  │
+│  文件树 / Session Changes │  消息流 + 输入框                 │
+│  文件内容 / Markdown 预览  │                                  │
+│                          │                                  │
+└──────────────────────────┴──────────────────────────────────┘
+```
+
+**设计要点**：
+- **左半屏**：Files 预览（文件树、Session Changes、文件内容、Markdown 预览）
+- **右半屏**：Chat（消息流、输入框、与 iPhone 一致）
+- **Settings**：作为独立按钮加入第一行 toolbar（与 Session 操作、模型切换并列），点击以 sheet 或 navigation push 打开
+- **优势**：大屏上 Chat 与 Files 并排，无需切换 Tab 即可同时查看对话与文件
 
 ### 4.2 Chat Tab（主交互界面）
 
@@ -480,9 +506,9 @@ App 进入前台
 
 **预估工作量**：2 周
 
-### Phase 3 — 文件浏览与文档审查
+### Phase 3 — 文件浏览、文档审查与 iPad/Vision Pro 布局
 
-**目标**：完整的文件浏览和**文档审查**能力（文档为主，代码为辅）。
+**目标**：完整的文件浏览和**文档审查**能力，以及 iPad/Vision Pro 的大屏布局优化。
 
 | 功能 | 说明 |
 |------|------|
@@ -493,6 +519,8 @@ App 进入前台
 | 文档 Diff | 高亮 changes（优先 Preview 内高亮，否则 Markdown 内高亮） |
 | Session Diff | 当前 session 的变更文件列表和 diff 视图 |
 | 单文件 Diff | 文件的 uncommitted changes |
+| **Think Streaming** | delta 增量更新（打字机效果），见 [THINK_STREAMING.md](THINK_STREAMING.md) |
+| **iPad / Vision Pro 布局** | 无 Tab Bar；左右分栏：左 Files 预览、右 Chat；Settings 作为第一行 toolbar 按钮 |
 
 **预估工作量**：2-3 周
 
@@ -500,7 +528,6 @@ App 进入前台
 
 | 功能 | 说明 |
 |------|------|
-| iPad 适配 | Split view、sidebar 优化 |
 | mDNS 自动发现 | 局域网自动发现 OpenCode server |
 | 推送通知 | AI 完成任务时通过 APNs 通知（需要 server 端配合或轮询） |
 | Widget | iOS Widget 显示当前 session 状态 |
