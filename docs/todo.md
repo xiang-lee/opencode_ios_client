@@ -9,4 +9,4 @@
 
 ## 待办（Phase 3）
 
-- **Sync Streaming delta**：解析 `message.part.updated` 的 `delta`，增量追加实现打字机效果（见 [SYNC_STREAMING.md](SYNC_STREAMING.md)）
+- **Think Streaming delta**：解析 `message.part.updated` 的 `delta`，增量追加实现打字机效果（见 [THINK_STREAMING.md](THINK_STREAMING.md)）

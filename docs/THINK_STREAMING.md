@@ -1,4 +1,4 @@
-# Sync Streaming
+# Think Streaming
 
 > 目标：让 iOS 客户端在流式更新、工具调用展示上接近官方 Web 客户端的行为
 

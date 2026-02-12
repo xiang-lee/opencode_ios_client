@@ -35,7 +35,7 @@
 
 ## 待办
 
-- [ ] **Phase 3：Sync Streaming**：delta 增量更新（见 [SYNC_STREAMING.md](SYNC_STREAMING.md)）；Tool 折叠/Reasoning 展示已实现
+- [ ] **Phase 3：Think Streaming**：delta 增量更新（见 [THINK_STREAMING.md](THINK_STREAMING.md)）；Tool 折叠/Reasoning 展示已实现
 
 ## 遇到的问题
 
@@ -55,7 +55,7 @@
 
 5. **Unable to simultaneously satisfy constraints**：键盘相关 (TUIKeyboardContentView, UIKeyboardImpl) 的约束冲突。来自系统键盘，非应用代码，通常无需修复。
 
-6. **术语澄清**：Sync streaming 实指 Think（ReasoningPartView）的展开/收起行为，非 Tool。
+6. **术语澄清**：Think streaming 实指 Think（ReasoningPartView）的展开/收起行为，非 Tool。
 
 ## 决策记录
 
