@@ -47,7 +47,7 @@ iOS 端是纯粹的 API 消费者。不需要任何本地 AI 推理、文件系�
 | UI 框架 | SwiftUI | 原生体验、流畅动画、iOS 特性利用最充分 |
 | 网络层 | URLSession + 原生 SSE | 无需引入第三方 HTTP 库，SSE 协议本身很简单 |
 | 状态管理 | Swift Observation (@Observable) | iOS 17+ 原生方案，配合 SwiftUI 最简洁 |
-| 代码高亮 | TreeSitter (via swift binding) 或 Splash | 离线语法高亮 |
+| 代码高亮 | 暂不实现 | 当前仅等宽字体、行号 |
 | Markdown 渲染 | 原生 TextKit / MarkdownUI | 文档预览、支持代码块 |
 | Diff 渲染 | 自建组件 (基于服务端返回的 before/after) | 服务端已经做了 diff 计算，客户端只需渲染；文档 diff 需高亮 changes |
 | 最低版本 | iOS 17.0 | 使用 Observation 框架，放弃 iOS 16 |
@@ -113,7 +113,7 @@ App 采用底部 Tab Bar，三个 Tab：
 - `patch` — 文件变更摘要卡片，显示修改的文件列表，点击可跳转到 Files Tab 的 File Tree 中打开该文件预览
 - `tool`（write/edit/apply_patch/read_file 等）— 若 part 含文件路径（metadata.path、state.input.path、files 数组、或 patchText 解析），点击可弹出选项「在 File Tree 中打开」，直接打开文件预览
 
-**流式更新（Sync Streaming）**：行为与官方 Web 客户端对齐。SSE 推送 `message.part.updated` 时，若有 `delta` 字段，客户端增量追加到对应 text/reasoning Part，实现打字机效果；若无 delta 则全量 reload。使用 `messageID` + `partID` 定位 Part。详见 [SYNC_STREAMING_RESEARCH.md](SYNC_STREAMING_RESEARCH.md)。**注**：Tool output 的实时流式（如 terminal 输出逐行）当前 API 不支持，output 仅在 completed 时一次性返回。
+**流式更新（Sync Streaming）**：行为与官方 Web 客户端对齐。SSE 推送 `message.part.updated` 时，若有 `delta` 字段，客户端增量追加到对应 text/reasoning Part，实现打字机效果；若无 delta 则全量 reload。使用 `messageID` + `partID` 定位 Part。详见 [SYNC_STREAMING.md](SYNC_STREAMING.md)。**注**：Tool output 的实时流式（如 terminal 输出逐行）当前 API 不支持，output 仅在 completed 时一次性返回。
 
 **Session 状态指示器**：消息流顶部显示当前 session 状态（idle / busy / error）。状态来源于 `session.status` SSE 事件。busy 时显示进度动画。
 
@@ -487,7 +487,7 @@ App 进入前台
 | 功能 | 说明 |
 |------|------|
 | 文件树 | 目录展开/收起、git 状态标记 |
-| 文件内容 | 语法高亮、行号 |
+| 文件内容 | 行号、等宽字体（语法高亮暂不实现） |
 | 文件搜索 | 模糊搜索文件名 |
 | Markdown 预览 | Preview 模式为主，支持 Markdown/Preview 切换 |
 | 文档 Diff | 高亮 changes（优先 Preview 内高亮，否则 Markdown 内高亮） |

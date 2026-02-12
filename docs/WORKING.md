@@ -35,10 +35,7 @@
 
 ## 待办
 
-- [ ] **Sync Streaming**：delta 增量更新、Tool 完成后收起（见 [SYNC_STREAMING_RESEARCH.md](SYNC_STREAMING_RESEARCH.md)）
-- [ ] Phase 3：完善 Diff 行级高亮、语法高亮（可选）
-- [ ] 与真实 OpenCode Server 联调验证
-- [ ] 与真实 OpenCode Server 联调验证（含 todo.updated 实测）
+- [ ] **Phase 3：Sync Streaming**：delta 增量更新（见 [SYNC_STREAMING.md](SYNC_STREAMING.md)）；Tool 折叠/Reasoning 展示已实现
 
 ## 遇到的问题
 
