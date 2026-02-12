@@ -5,7 +5,7 @@
 ## 当前状态
 
 - **最后更新**：2026-02-12
-- **Phase**：Phase 2 完成，UX 简化完成
+- **Phase**：Phase 2 完成，UX 简化完成，UI 打磨完成
 - **编译**：✅ 通过
 - **测试**：✅ 9 个单元测试通过
 
@@ -25,8 +25,9 @@
 - [x] Tool/Patch 点击跳转：write/edit/apply_patch 等含 path 的 tool，点击可「在 File Tree 中打开」文件预览（path 来自 metadata、state.input.path/file_path/filePath、patchText 解析）
 - [x] apply_patch path 解析修复：patchText 以 "*** Begin Patch\n*** Add File: " 开头，改用 range(of:) 查找
 - [x] Tool 卡片增加「在 File Tree 中打开」按钮（label 旁文件夹图标）+ context menu
-- [x] Markdown 预览：AttributedString 不支持 tables，解析失败时回退等宽源码
+- [x] Markdown 预览：使用 MarkdownUI 库（swift-markdown-ui 2.4.1）替代自定义渲染，完整支持 GFM（表格、标题、代码块、列表等）
 - [x] 单元测试：defaultServerAddress、sessionDecoding、messageDecoding、sseEvent、partDecoding
+- [x] UI 打磨：放大输入框（3-8 行，capsule 形状）、模型选择器胶囊渐变、渲染风格 SF Symbols、消息气泡优化、工具/补丁/权限卡片圆角柔化、MarkdownUI 用于 chat 消息渲染
 
 ## 待办
 
