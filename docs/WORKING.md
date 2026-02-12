@@ -7,7 +7,7 @@
 - **最后更新**：2026-02-12
 - **Phase**：Phase 3 完成（Think Streaming + iPad 分栏）
 - **编译**：✅ 通过
-- **测试**：✅ 36 个单元测试通过
+- **测试**：✅ 43 个单元测试通过
 
 ## 已完成
 
@@ -34,9 +34,14 @@
 - [x] Session Todo（task list）：支持 `/session/:id/todo` 拉取 + SSE `todo.updated` 更新；`todowrite` tool 渲染为 Task List 卡片
 - [x] Phase 3：Think Streaming delta（见 [THINK_STREAMING.md](THINK_STREAMING.md)）
 - [x] Phase 3：iPad / Vision Pro 布局：`horizontalSizeClass == .regular` 时左右分栏（左 Files、右 Chat），Settings 为 toolbar 按钮
+- [x] 测试覆盖：SSE 事件结构（session.status、permission.asked、todo.updated、message.updated）、路径规范化（a/b 前缀、#、:line:col）
 
 ## 待办
 
+- [ ] **Code Review 1.1**：AppState 拆分（SessionStore/MessageStore/FileStore/TodoStore）
+- [ ] **Code Review 1.2**：SSE 解析与重连策略（调研 API → RFC → 测试 → 实现）
+- [ ] **Code Review 1.3**：SSE 事件按 session 过滤
+- [ ] **Code Review 1.4**：PathNormalizer 统一路径规范化
 - [ ] **Phase 4：iPad / Vision Pro 布局优化**：可考虑（可选）从 Chat 点击文件时在左栏展示而非 sheet
 
 ## 遇到的问题

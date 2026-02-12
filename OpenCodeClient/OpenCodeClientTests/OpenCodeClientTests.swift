@@ -58,6 +58,59 @@ struct OpenCodeClientTests {
         #expect(event.payload.type == "message.updated")
     }
 
+    // handleSSEEvent depends on these event structures - document expected format
+    @Test func sseEventSessionStatus() throws {
+        let json = """
+        {"payload":{"type":"session.status","properties":{"sessionID":"s1","status":{"type":"busy","attempt":1,"message":"Processing","next":null}}}}
+        """
+        let data = json.data(using: .utf8)!
+        let event = try JSONDecoder().decode(SSEEvent.self, from: data)
+        #expect(event.payload.type == "session.status")
+        let props = event.payload.properties ?? [:]
+        #expect((props["sessionID"]?.value as? String) == "s1")
+        let statusObj = props["status"]?.value as? [String: Any]
+        #expect(statusObj != nil)
+        #expect((statusObj?["type"] as? String) == "busy")
+    }
+
+    @Test func sseEventPermissionAsked() throws {
+        let json = """
+        {"payload":{"type":"permission.asked","properties":{"sessionID":"s1","permissionID":"perm1","description":"Run command","tool":"run_terminal_cmd"}}}
+        """
+        let data = json.data(using: .utf8)!
+        let event = try JSONDecoder().decode(SSEEvent.self, from: data)
+        #expect(event.payload.type == "permission.asked")
+        let props = event.payload.properties ?? [:]
+        #expect((props["sessionID"]?.value as? String) == "s1")
+        #expect((props["permissionID"]?.value as? String) == "perm1")
+        #expect((props["description"]?.value as? String) == "Run command")
+        #expect((props["tool"]?.value as? String) == "run_terminal_cmd")
+    }
+
+    @Test func sseEventTodoUpdated() throws {
+        let json = """
+        {"payload":{"type":"todo.updated","properties":{"sessionID":"s1","todos":[{"id":"t1","content":"Task 1","completed":false},{"id":"t2","content":"Task 2","completed":true}]}}}
+        """
+        let data = json.data(using: .utf8)!
+        let event = try JSONDecoder().decode(SSEEvent.self, from: data)
+        #expect(event.payload.type == "todo.updated")
+        let props = event.payload.properties ?? [:]
+        #expect((props["sessionID"]?.value as? String) == "s1")
+        let todosObj = props["todos"]?.value
+        #expect(JSONSerialization.isValidJSONObject(todosObj ?? []))
+    }
+
+    @Test func sseEventMessageUpdated() throws {
+        let json = """
+        {"payload":{"type":"message.updated","properties":{"sessionID":"s1","messageID":"m1"}}}
+        """
+        let data = json.data(using: .utf8)!
+        let event = try JSONDecoder().decode(SSEEvent.self, from: data)
+        #expect(event.payload.type == "message.updated")
+        let props = event.payload.properties ?? [:]
+        #expect((props["sessionID"]?.value as? String) == "s1")
+    }
+
     // Think Streaming: message.part.updated with delta for typing effect
     @Test func sseEventMessagePartUpdatedWithDelta() throws {
         let json = """
@@ -324,6 +377,35 @@ struct FilePathNavigationTests {
         let data = json.data(using: .utf8)!
         let part = try JSONDecoder().decode(Part.self, from: data)
         #expect(part.filePathsForNavigation.isEmpty)
+    }
+
+    // Path normalization: a/, b/ prefix, #L, :line:col suffixes stripped (via filePathsForNavigation)
+    @Test func filePathsNormalizedFromMetadata() throws {
+        let json = """
+        {"id":"p1","messageID":"m1","sessionID":"s1","type":"tool","text":null,"tool":"read_file","callID":"c1","state":null,"metadata":{"path":"a/src/app.swift","title":null,"input":null},"files":null}
+        """
+        let data = json.data(using: .utf8)!
+        let part = try JSONDecoder().decode(Part.self, from: data)
+        #expect(part.filePathsForNavigation == ["src/app.swift"])
+    }
+
+    @Test func filePathsNormalizedStripHashAndLine() throws {
+        // # and everything after -> stripped first; :line:col at end -> stripped
+        let json = """
+        {"id":"p1","messageID":"m1","sessionID":"s1","type":"tool","text":null,"tool":"read_file","callID":"c1","state":null,"metadata":{"path":"docs/readme.md#L42","title":null,"input":null},"files":null}
+        """
+        let data = json.data(using: .utf8)!
+        let part = try JSONDecoder().decode(Part.self, from: data)
+        #expect(part.filePathsForNavigation == ["docs/readme.md"])
+    }
+
+    @Test func filePathsNormalizedStripLineColSuffix() throws {
+        let json = """
+        {"id":"p1","messageID":"m1","sessionID":"s1","type":"tool","text":null,"tool":"read_file","callID":"c1","state":null,"metadata":{"path":"src/app.swift:42:10","title":null,"input":null},"files":null}
+        """
+        let data = json.data(using: .utf8)!
+        let part = try JSONDecoder().decode(Part.self, from: data)
+        #expect(part.filePathsForNavigation == ["src/app.swift"])
     }
 }
 
