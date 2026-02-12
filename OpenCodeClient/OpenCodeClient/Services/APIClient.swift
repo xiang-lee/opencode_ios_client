@@ -146,6 +146,49 @@ actor APIClient {
         let (data, _) = try await makeRequest(path: "/session/\(sessionID)/diff")
         return try JSONDecoder().decode([FileDiff].self, from: data)
     }
+
+    func fileList(path: String = "") async throws -> [FileNode] {
+        let q = path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? path
+        let (data, _) = try await makeRequest(path: "/file?path=\(q)")
+        return try JSONDecoder().decode([FileNode].self, from: data)
+    }
+
+    func fileContent(path: String) async throws -> FileContent {
+        let encoded = path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? path
+        let (data, _) = try await makeRequest(path: "/file/content?path=\(encoded)")
+        return try JSONDecoder().decode(FileContent.self, from: data)
+    }
+
+    func findFile(query: String, limit: Int = 50) async throws -> [String] {
+        let q = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        let (data, _) = try await makeRequest(path: "/find/file?query=\(q)&limit=\(limit)")
+        return try JSONDecoder().decode([String].self, from: data)
+    }
+
+    func fileStatus() async throws -> [FileStatusEntry] {
+        let (data, _) = try await makeRequest(path: "/file/status")
+        return try JSONDecoder().decode([FileStatusEntry].self, from: data)
+    }
+}
+
+struct FileNode: Codable, Identifiable {
+    var id: String { path }
+    let name: String
+    let path: String
+    let absolute: String?
+    let type: String  // "directory" | "file"
+    let ignored: Bool?
+}
+
+struct FileContent: Codable {
+    let type: String  // "text" | "binary"
+    let content: String?
+    var text: String? { type == "text" ? content : nil }
+}
+
+struct FileStatusEntry: Codable {
+    let path: String?
+    let status: String?  // "added" | "modified" | "deleted" | "untracked"
 }
 
 struct FileDiff: Codable, Identifiable, Hashable {

@@ -40,6 +40,13 @@ final class AppState {
     var selectedDiffFile: String?
     var selectedTab: Int = 0  // 0=Chat, 1=Files, 2=Settings
 
+    var fileTreeRoot: [FileNode] = []
+    var fileStatusMap: [String: String] = [:]  // path -> status
+    var expandedPaths: Set<String> = []
+    var fileChildrenCache: [String: [FileNode]] = [:]  // path -> children
+    var fileSearchQuery: String = ""
+    var fileSearchResults: [String] = []
+
     private let apiClient = APIClient()
     private let sseClient = SSEClient()
     private var sseTask: Task<Void, Never>?
@@ -142,6 +149,66 @@ final class AppState {
         } catch {
             sessionDiffs = []
         }
+    }
+
+    func loadFileTree() async {
+        do {
+            fileTreeRoot = try await apiClient.fileList(path: "")
+        } catch {
+            fileTreeRoot = []
+        }
+    }
+
+    func loadFileStatus() async {
+        do {
+            let entries = try await apiClient.fileStatus()
+            fileStatusMap = Dictionary(uniqueKeysWithValues: entries.compactMap { e in
+                guard let p = e.path else { return nil }
+                return (p, e.status ?? "")
+            })
+        } catch {
+            fileStatusMap = [:]
+        }
+    }
+
+    func loadFileChildren(path: String) async -> [FileNode] {
+        do {
+            let children = try await apiClient.fileList(path: path)
+            fileChildrenCache[path] = children
+            return children
+        } catch {
+            fileChildrenCache[path] = []
+            return []
+        }
+    }
+
+    func cachedChildren(for path: String) -> [FileNode]? {
+        fileChildrenCache[path]
+    }
+
+    func searchFiles(query: String) async {
+        guard !query.isEmpty else { fileSearchResults = []; return }
+        do {
+            fileSearchResults = try await apiClient.findFile(query: query)
+        } catch {
+            fileSearchResults = []
+        }
+    }
+
+    func loadFileContent(path: String) async throws -> FileContent {
+        try await apiClient.fileContent(path: path)
+    }
+
+    func toggleFileExpanded(_ path: String) {
+        if expandedPaths.contains(path) {
+            expandedPaths.remove(path)
+        } else {
+            expandedPaths.insert(path)
+        }
+    }
+
+    func isFileExpanded(_ path: String) -> Bool {
+        expandedPaths.contains(path)
     }
 
     func sendMessage(_ text: String) async -> Bool {
@@ -274,6 +341,8 @@ final class AppState {
             await loadSessions()
             await loadMessages()
             await loadSessionDiff()
+            await loadFileTree()
+            await loadFileStatus()
             let statuses = try? await apiClient.sessionStatus()
             if let statuses { sessionStatuses = statuses }
         }

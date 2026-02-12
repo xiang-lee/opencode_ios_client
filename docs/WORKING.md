@@ -21,12 +21,13 @@
 - [x] Phase 1 完善：SSE 事件解析、流式更新、Part.state 兼容、Markdown 渲染、工具调用全行显示
 - [x] Phase 2：Part 渲染（reasoning 折叠、step 分隔线、patch 卡片）、权限手动批准、主题切换
 - [x] UX 简化：一行 toolbar（左：新建/重命名/查看 session；右：3 模型图标），移除 Compact、Import、Model Presets
+- [x] Phase 3：文件树（递归展开、按需加载）、文件内容（代码行号、Markdown Preview 切换）、Files Tab 双模式（File Tree / Session Changes）、文件搜索
 - [x] 单元测试：defaultServerAddress、sessionDecoding、messageDecoding、sseEvent、partDecoding
 
 ## 待办
 
 - [ ] **Sync Streaming**：delta 增量更新、Tool 完成后收起（见 [SYNC_STREAMING_RESEARCH.md](SYNC_STREAMING_RESEARCH.md)）
-- [ ] Phase 3：文件树、Markdown 预览、文档 Diff、高亮
+- [ ] Phase 3：完善 Diff 行级高亮、语法高亮（可选）
 - [ ] 与真实 OpenCode Server 联调验证
 
 ## 遇到的问题
