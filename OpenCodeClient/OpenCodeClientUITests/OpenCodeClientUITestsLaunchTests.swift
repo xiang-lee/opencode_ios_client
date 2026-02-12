@@ -2,7 +2,7 @@
 //  OpenCodeClientUITestsLaunchTests.swift
 //  OpenCodeClientUITests
 //
-//  Created by Yan Wang on 2/12/26.
+//
 //
 
 import XCTest

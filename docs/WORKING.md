@@ -37,7 +37,7 @@
 
 ## 遇到的问题
 
-1. **Local network prohibited (iOS)**：连接 `192.168.180.128:4096` 时报错 `Local network prohibited`。需在 Info.plist 添加：
+1. **Local network prohibited (iOS)**：连接 `opencode.local:4096`（或 `<LAN_IP>:4096`）时报错 `Local network prohibited`。需在 Info.plist 添加：
    - `NSLocalNetworkUsageDescription`：说明为何需要本地网络，首次访问会弹出权限弹窗
    - `NSAppTransportSecurity` → `NSAllowsLocalNetworking`：允许 HTTP 访问本地 IP
    - 用户需在弹窗中要点「允许」才能连接
@@ -59,7 +59,7 @@
 
 （记录实现过程中的技术决策）
 
-## API 验证（192.168.180.128:4096）
+## API 验证（opencode.local:4096）
 
 - **GET /global/health**：✅ `{ healthy, version }`
 - **GET /config/providers**：✅ 返回 `providers: array`（非 dict），每项含 `id`, `name`, `models: { modelID: ModelInfo }`。已修复 iOS 解析。

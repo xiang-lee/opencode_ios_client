@@ -2,7 +2,7 @@
 //  OpenCodeClientTests.swift
 //  OpenCodeClientTests
 //
-//  Created by Yan Wang on 2/12/26.
+//
 //
 
 import Foundation
@@ -14,7 +14,7 @@ import Testing
 struct OpenCodeClientTests {
 
     @Test func defaultServerAddress() {
-        #expect(APIClient.defaultServer == "192.168.180.128:4096")
+        #expect(APIClient.defaultServer == "opencode.local:4096")
     }
 
     @Test func sessionDecoding() throws {

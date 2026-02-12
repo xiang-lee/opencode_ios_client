@@ -183,7 +183,7 @@ Diff 渲染采用 unified diff 格式（类似 GitHub），绿色背景表示新
 
 #### 4.4.1 Server Connection
 
-- Server Address：文本输入框，格式 `ip:port`，默认 `192.168.180.128:4096`
+- Server Address：文本输入框，格式 `host:port`，默认 `opencode.local:4096`
 - Username：可选，默认 `opencode`
 - Password：可选，存入 Keychain
 - 连接状态指示：显示 Connected / Disconnected / Connecting
@@ -410,7 +410,7 @@ App 进入前台
 │                                 │
 │ SERVER CONNECTION               │
 │ ┌─────────────────────────────┐ │
-│ │ Address   192.168.180.128:4096 │ │
+│ │ Address   opencode.local:4096  │ │
 │ │ Username  opencode          │ │
 │ │ Password  ••••••••          │ │
 │ │ Status    🟢 Connected      │ │
@@ -528,7 +528,7 @@ App 进入前台
 
 4. **多项目支持**：暂不实现。
 
-5. **默认 Server**：`192.168.180.128:4096`。默认无认证，但需实现 Basic Auth 支持（可选配置）。
+5. **默认 Server**：`opencode.local:4096`。默认无认证，但需实现 Basic Auth 支持（可选配置）。
 
 ## 11. 实现起步指南
 
@@ -563,7 +563,7 @@ App 进入前台
 
 ### 11.4 与 OpenCode Server 的对接
 
-默认 Server 地址：`192.168.180.128:4096`（无认证）。若 Server 启用了 `OPENCODE_SERVER_PASSWORD` 等，在 Settings 中配置 Username/Password 即可。确保本机或局域网内有运行中的 OpenCode Server（`opencode serve` 或 `opencode web`）。
+默认 Server 地址：`opencode.local:4096`（无认证）。若 Server 启用了 `OPENCODE_SERVER_PASSWORD` 等，在 Settings 中配置 Username/Password 即可。确保本机或局域网内有运行中的 OpenCode Server（`opencode serve` 或 `opencode web`）。
 
 ---
 

@@ -87,7 +87,7 @@
 #### 3.1 REST API
 
 - 使用 `URLSession` 封装 `APIClient`
-- 统一 Base URL：`http://<ip>:<port>`，默认 `192.168.180.128:4096`，来自 Settings
+- 统一 Base URL：`http://<host>:<port>`，默认 `opencode.local:4096`，来自 Settings
 - 所有请求附加 Basic Auth header（若配置）
 - 推荐使用 `POST /session/:id/prompt_async` 发送消息，busy 时由服务端排队
 

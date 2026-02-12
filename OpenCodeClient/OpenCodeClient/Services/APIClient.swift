@@ -10,7 +10,8 @@ actor APIClient {
     private var username: String?
     private var password: String?
 
-    static let defaultServer = "192.168.180.128:4096"
+    // Default to a non-personal, generic address; users can override in Settings.
+    static let defaultServer = "opencode.local:4096"
 
     init(baseURL: String = defaultServer, username: String? = nil, password: String? = nil) {
         self.baseURL = baseURL.hasPrefix("http") ? baseURL : "http://\(baseURL)"
