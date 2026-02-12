@@ -179,6 +179,27 @@ struct OpenCodeClientTests {
     }
 }
 
+// MARK: - Session Filtering (Code Review 1.3)
+
+struct SessionFilteringTests {
+
+    @Test func shouldProcessWhenSessionMatches() {
+        #expect(AppState.shouldProcessMessageEvent(eventSessionID: "s1", currentSessionID: "s1") == true)
+    }
+
+    @Test func shouldNotProcessWhenSessionMismatch() {
+        #expect(AppState.shouldProcessMessageEvent(eventSessionID: "s2", currentSessionID: "s1") == false)
+    }
+
+    @Test func shouldNotProcessWhenNoCurrentSession() {
+        #expect(AppState.shouldProcessMessageEvent(eventSessionID: "s1", currentSessionID: nil) == false)
+    }
+
+    @Test func shouldProcessWhenNoEventSessionIDForBackwardCompat() {
+        #expect(AppState.shouldProcessMessageEvent(eventSessionID: nil, currentSessionID: "s1") == true)
+    }
+}
+
 // MARK: - Message & Role Tests
 
 struct MessageRoleTests {

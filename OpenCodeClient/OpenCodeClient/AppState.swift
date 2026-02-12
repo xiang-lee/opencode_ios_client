@@ -327,6 +327,13 @@ final class AppState {
         sseTask = nil
     }
 
+    /// 是否应处理 message.updated：有 sessionID 时需匹配当前 session，否则保持原行为
+    static func shouldProcessMessageEvent(eventSessionID: String?, currentSessionID: String?) -> Bool {
+        guard currentSessionID != nil else { return false }
+        if let sid = eventSessionID { return sid == currentSessionID }
+        return true  // 无 sessionID 时保持原行为（向后兼容）
+    }
+
     private func handleSSEEvent(_ event: SSEEvent) async {
         let type = event.payload.type
         let props = event.payload.properties ?? [:]
@@ -341,7 +348,8 @@ final class AppState {
                 }
             }
         case "message.updated":
-            if currentSessionID != nil {
+            let eventSessionID = props["sessionID"]?.value as? String
+            if Self.shouldProcessMessageEvent(eventSessionID: eventSessionID, currentSessionID: currentSessionID) {
                 streamingPartTexts = [:]
                 await loadMessages()
                 await loadSessionDiff()
