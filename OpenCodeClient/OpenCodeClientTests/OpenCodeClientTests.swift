@@ -887,3 +887,75 @@ struct SSHKnownHostStoreTests {
         #expect(SSHKnownHostStore.trustedOpenSSHKey(host: host, port: port) == nil)
     }
 }
+
+struct PermissionControllerTests {
+
+    @Test func mapPendingRequests() {
+        let req = APIClient.PermissionRequest(
+            id: "p1",
+            sessionID: "s1",
+            permission: "run_terminal_cmd",
+            patterns: ["src/**"],
+            metadata: nil,
+            always: ["always"],
+            tool: nil
+        )
+
+        let mapped = PermissionController.fromPendingRequests([req])
+        #expect(mapped.count == 1)
+        #expect(mapped[0].id == "s1/p1")
+        #expect(mapped[0].allowAlways == true)
+        #expect(mapped[0].patterns == ["src/**"])
+    }
+
+    @Test func parseAskedEventWithNestedRequest() {
+        let props: [String: AnyCodable] = [
+            "request": AnyCodable([
+                "sessionID": "s1",
+                "permissionID": "perm1",
+                "permission": "run_terminal_cmd",
+                "tool": "bash",
+                "patterns": ["src/**"],
+                "always": true,
+                "description": "Run command",
+            ]),
+        ]
+
+        let parsed = PermissionController.parseAskedEvent(properties: props)
+        #expect(parsed?.sessionID == "s1")
+        #expect(parsed?.permissionID == "perm1")
+        #expect(parsed?.tool == "bash")
+        #expect(parsed?.allowAlways == true)
+        #expect(parsed?.description == "Run command")
+    }
+
+    @Test func parseAskedEventWithFallbackFields() {
+        let props: [String: AnyCodable] = [
+            "sessionID": AnyCodable("s2"),
+            "id": AnyCodable("perm2"),
+            "permission": AnyCodable("edit_file"),
+            "tool": AnyCodable(["name": "edit"]),
+        ]
+
+        let parsed = PermissionController.parseAskedEvent(properties: props)
+        #expect(parsed?.id == "s2/perm2")
+        #expect(parsed?.tool == "edit")
+        #expect(parsed?.description == "edit")
+    }
+
+    @Test func applyRepliedEventRemovesOnlyTargetPermission() {
+        var list: [PendingPermission] = [
+            .init(sessionID: "s1", permissionID: "p1", permission: nil, patterns: [], allowAlways: false, tool: nil, description: "a"),
+            .init(sessionID: "s1", permissionID: "p2", permission: nil, patterns: [], allowAlways: false, tool: nil, description: "b"),
+        ]
+        PermissionController.applyRepliedEvent(
+            properties: [
+                "sessionID": AnyCodable("s1"),
+                "permissionID": AnyCodable("p1"),
+            ],
+            to: &list
+        )
+        #expect(list.count == 1)
+        #expect(list[0].permissionID == "p2")
+    }
+}

@@ -31,6 +31,8 @@
 - [x] **iPhone 发热明显热点修复（滚动）**：移除 running activity 每秒计时对 `scrollAnchor` 的影响，避免每秒触发 `scrollTo("bottom")` 动画
 - [x] **全量 Code Review 文档重写（2026-02-13）**：删除并重写 `docs/code_review.md`，聚焦架构/性能/安全的明显问题与优先级
 - [x] **SSH TOFU 安全基线**：替换 `acceptAnything`，首次连接信任 host key，后续强校验并支持重置信任主机
+- [x] **SSE 主通道收敛**：移除 busy 常驻轮询，改为 SSE 重连后一次性 bootstrap 同步（messages + permissions）
+- [x] **AppState 重构（PermissionController）**：权限事件解析/回写与 pending 映射从 AppState 抽离，补行为测试
 
 ## 已完成
 
@@ -123,6 +125,8 @@
 - [ ] **iPhone 发热排查与优化（暂缓）**：按当前优先级先暂停，后续再做 Instruments 复核与进一步优化
 - [x] **Activity Row 逐 turn 保留校验（代码审查）**：已完成一轮代码级检查（逐 turn completed + 新 turn running 逻辑）；真机交互回归继续跟进
 - [x] **全量 Codebase Review 文档重写**：删除旧 `docs/code_review.md` 并按当前代码重写，聚焦架构/可重构点/明显性能与安全问题
+- [x] **SSE 主通道 + 一次性 bootstrap**：移除 busy 常驻轮询，保留重连/进入会话的一次全量补偿同步
+- [x] **AppState Refactor Iteration B（PermissionController）**：先补测试，再抽离权限控制逻辑并保持外部接口不变
 
 ### Code Review 改进（来自 code_review.md）
 

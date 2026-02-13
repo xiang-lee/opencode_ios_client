@@ -375,7 +375,6 @@ final class AppState {
     private let sseClient = SSEClient()
     let sshTunnelManager = SSHTunnelManager()
     private var sseTask: Task<Void, Never>?
-    private var pollingTask: Task<Void, Never>?
 
     /// Guard against race conditions when rapidly switching sessions.
     /// Each selectSession call generates a new ID; async tasks check if they're still current.
@@ -520,9 +519,6 @@ final class AppState {
             await self.loadSessionTodos()
             guard self.sessionLoadingID == loadingID else { return }
 
-            if self.isBusySession(self.currentSessionStatus) {
-                self.startPollingCurrentSession(forBusySession: true)
-            }
         }
     }
 
@@ -773,7 +769,6 @@ final class AppState {
         let model = selectedModel.map { Message.ModelInfo(providerID: $0.providerID, modelID: $0.modelID) }
         do {
             try await apiClient.promptAsync(sessionID: sessionID, text: text, model: model)
-            startPollingAfterSend()
             return true
         } catch {
             sendError = error.localizedDescription
@@ -825,42 +820,13 @@ final class AppState {
         partsByMessage[id] = nil
     }
 
-    private func startPollingAfterSend() {
-        startPollingCurrentSession()
-    }
-
-    /// Poll session state and messages in case SSE is delayed/lost.
-    /// If `forBusySession` is true, stop automatically once current session is non-busy.
-    private func startPollingCurrentSession(forBusySession: Bool = false) {
-        pollingTask?.cancel()
-        pollingTask = Task {
-            var i = 0
-            while !Task.isCancelled {
-                guard let sessionID = currentSessionID else { return }
-                await loadMessages()
-                await refreshPendingPermissions()
-
-                if forBusySession {
-                    if !isBusySession(currentSessionStatus) {
-                        break
-                    }
-                }
-
-                // Refresh sessions/status a few times to pick up updated status/title.
-                if i == 2 || i == 6 || i == 12 || i == 20 {
-                    if let statuses = try? await apiClient.sessionStatus() {
-                        mergePolledSessionStatuses(statuses)
-                    }
-                    await loadSessions()
-                }
-
-                i += 1
-                if i > 90 { break }
-
-                try? await Task.sleep(for: .seconds(2))
-                Self.logger.debug("pollSession session=\(sessionID, privacy: .public) iteration=\(i, privacy: .public)")
-            }
-        }
+    private func bootstrapSyncCurrentSession(reason: String) async {
+        guard currentSessionID != nil else { return }
+        let start = Date()
+        await loadMessages()
+        await refreshPendingPermissions()
+        let elapsedMs = Int(Date().timeIntervalSince(start) * 1000)
+        Self.logger.debug("bootstrapSync reason=\(reason, privacy: .public) elapsedMs=\(elapsedMs, privacy: .public) messages=\(self.messages.count, privacy: .public) permissions=\(self.pendingPermissions.count, privacy: .public)")
     }
 
     func abortSession() async {
@@ -908,17 +874,7 @@ final class AppState {
         guard isConnected else { return }
         do {
             let requests = try await apiClient.pendingPermissions()
-            pendingPermissions = requests.map { req in
-                PendingPermission(
-                    sessionID: req.sessionID,
-                    permissionID: req.id,
-                    permission: req.permission,
-                    patterns: req.patterns ?? [],
-                    allowAlways: !(req.always ?? []).isEmpty,
-                    tool: nil,
-                    description: req.permission ?? "Permission required"
-                )
-            }
+            pendingPermissions = PermissionController.fromPendingRequests(requests)
         } catch {
             // Keep the current list on errors.
         }
@@ -941,6 +897,7 @@ final class AppState {
                 )
 
                 do {
+                    await bootstrapSyncCurrentSession(reason: "sse.reconnect")
                     for try await event in stream {
                         attempt = 0
                         await handleSSEEvent(event)
@@ -958,8 +915,6 @@ final class AppState {
     func disconnectSSE() {
         sseTask?.cancel()
         sseTask = nil
-        pollingTask?.cancel()
-        pollingTask = nil
     }
     
     // Note: AppState is typically held for the app's lifetime (as @State in root view),
@@ -1000,11 +955,6 @@ final class AppState {
                         streamingReasoningPart = nil
                         streamingPartTexts = [:]
                         streamingDraftMessageIDs.removeAll()
-                        pollingTask?.cancel()
-                    }
-
-                    if sessionID == currentSessionID && isBusySession(decoded) {
-                        startPollingCurrentSession(forBusySession: true)
                     }
                 }
             }
@@ -1077,67 +1027,12 @@ final class AppState {
                 }
             }
         case "permission.asked":
-            let rawProps: [String: Any] = props.mapValues { $0.value }
-            let requestObj = (rawProps["request"] as? [String: Any]) ?? rawProps
-
-            func readString(_ key: String) -> String? {
-                (requestObj[key] as? String) ?? (rawProps[key] as? String)
-            }
-
-            let sessionID = readString("sessionID")
-            let permissionID = readString("permissionID") ?? readString("id")
-
-            guard let sessionID, let permissionID else { break }
-
-            let permission = requestObj["permission"] as? String
-            let allowAlways: Bool = {
-                if let b = requestObj["always"] as? Bool { return b }
-                if let arr = requestObj["always"] as? [String] { return !arr.isEmpty }
-                if let arr = requestObj["always"] as? [Any] { return !arr.isEmpty }
-                return false
-            }()
-
-            let patterns: [String] = {
-                if let arr = requestObj["patterns"] as? [String] { return arr }
-                if let anyArr = requestObj["patterns"] as? [Any] { return anyArr.compactMap { $0 as? String } }
-                return []
-            }()
-
-            let tool: String? = {
-                if let t = requestObj["tool"] as? String { return t }
-                if let t = requestObj["tool"] as? [String: Any] {
-                    return (t["name"] as? String)
-                        ?? (t["tool"] as? String)
-                        ?? (t["id"] as? String)
-                }
-                return nil
-            }()
-
-            let desc = (requestObj["description"] as? String)
-                ?? tool
-                ?? permission
-                ?? "Permission required"
-
-            let perm = PendingPermission(
-                sessionID: sessionID,
-                permissionID: permissionID,
-                permission: permission,
-                patterns: patterns,
-                allowAlways: allowAlways,
-                tool: tool,
-                description: desc
-            )
-
-            if !pendingPermissions.contains(where: { $0.id == perm.id }) {
+            if let perm = PermissionController.parseAskedEvent(properties: props),
+               !pendingPermissions.contains(where: { $0.id == perm.id }) {
                 pendingPermissions.append(perm)
             }
         case "permission.replied":
-            if let sessionID = props["sessionID"]?.value as? String {
-                let permissionID = (props["permissionID"]?.value as? String) ?? (props["id"]?.value as? String)
-                if let permissionID {
-                    pendingPermissions.removeAll { $0.sessionID == sessionID && $0.permissionID == permissionID }
-                }
-            }
+            PermissionController.applyRepliedEvent(properties: props, to: &pendingPermissions)
         case "todo.updated":
             if let sessionID = props["sessionID"]?.value as? String,
                let todosObj = props["todos"]?.value,
