@@ -111,6 +111,7 @@ iPhone 采用底部 Tab Bar，三个 Tab：
 - **中栏**：Preview（文件内容、Markdown 预览，可手动刷新）
 - **右栏**：Chat（消息流、输入框、与 iPhone 一致）
 - **宽度比例**：Workspace ≈ 1/6；Preview ≈ 5/12；Chat ≈ 5/12（Preview 与 Chat 等宽）
+- **可拖动**：用户可拖动分隔条调整三栏宽度；默认值采用上述比例
 - **Settings**：作为独立按钮加入第一行 toolbar（与 Session 操作、模型切换并列），点击以 sheet 或 navigation push 打开
 - **优势**：大屏上 Chat 与 Preview 并排，文件预览无需弹窗；Workspace 与 Sessions 保持在左侧不干扰阅读
 
@@ -125,6 +126,8 @@ iPhone 采用底部 Tab Bar，三个 Tab：
 **iPhone 显示策略**：为避免顶栏被挤压，iPhone 上 chip 采用短名（`GPT` / `Spark` / `Opus` / `GLM`）；iPad 上显示全称。
 
 技术实现：切换模型不需要调用 API，只是改变本地状态。发送消息时在 `POST /session/:id/message` 的 body 中携带 `model: { providerID, modelID }` 字段。OpenCode 的设计本身就支持 per-message 的模型指定。
+
+补充：**模型选择按 Session 记忆**。每个 Session 维护独立的“当前使用模型”，切换 Session 时自动恢复该 Session 上次选择的模型，避免被全局状态覆盖。
 
 #### 4.2.1.1 Context Usage（上下文占用）指示器
 

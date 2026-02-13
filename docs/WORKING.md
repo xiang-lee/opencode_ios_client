@@ -36,6 +36,7 @@
 - [x] Phase 3：iPad / Vision Pro 布局：`horizontalSizeClass == .regular` 时左右分栏（左 Files、右 Chat），Settings 为 toolbar 按钮
 - [x] iPad / Vision Pro 布局升级：三栏（NavigationSplitView）— 左 Workspace（Files+Sessions）/ 中 Preview / 右 Chat
 - [x] iPad 三栏列宽比例：Workspace ≈ 1/6；Preview ≈ 5/12；Chat ≈ 5/12
+- [x] iPad 三栏可拖动：设置默认 ideal 宽度，但允许用户拖动分隔条调整
 - [x] iPad 文件预览内联：左侧选择文件或 Chat tool/patch 点击文件时，更新中间 Preview（不再弹 sheet）
 - [x] iPad Preview 刷新按钮：中间栏右上角提供手动刷新（重新加载文件内容）
 - [x] 测试覆盖：SSE 事件结构、session 过滤、PathNormalizer、路径规范化
@@ -77,6 +78,7 @@
 - [x] **Context provider config 加载修复**：`GET /config/providers` 解码兼容 array/dict 变体；点击 ring 时若未加载则自动触发加载，并在失败时显示错误信息
 - [x] **Context sheet 默认大小优化**：iPad 打开即为 large（避免先小后逐步变大）
 - [x] **输入草稿持久化**：按 sessionID 持久化未发送输入，切换 session 可恢复；发送成功后清空
+- [x] **模型选择按 Session 记忆**：切换 session 时自动恢复该 session 上次选择的模型（避免全局覆盖）
 - [x] **发送重复消息修复**：busy/polling 场景下去重 optimistic temp user message，避免 UI 显示两条
 - [x] **Busy/Retry 会话轮询增强**：将 `retry` 与 `busy` 同等视为 busy；busy 时自动轮询刷新，退出 busy 自动停止
 - [x] **loadMessages 解码兜底**：支持空 body/非数组 payload（`messages`/`data`/`result` 包裹、单对象）以避免轮询因解析失败中断

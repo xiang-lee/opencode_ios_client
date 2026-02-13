@@ -132,18 +132,24 @@ struct ContentView: View {
     private var splitLayout: some View {
         GeometryReader { geo in
             let total = geo.size.width
-            let sidebar = total / 6
-            let pane = (total - sidebar) / 2
+            let sidebarIdeal = total / 6
+            let paneIdeal = (total - sidebarIdeal) / 2
+
+            let sidebarMin = min(sidebarIdeal, total * 0.10)
+            let sidebarMax = max(sidebarIdeal, total * 0.33)
+
+            let paneMin = min(paneIdeal, total * 0.25)
+            let paneMax = max(paneIdeal, total * 0.70)
 
             NavigationSplitView {
                 SplitSidebarView(state: state)
-                    .navigationSplitViewColumnWidth(min: sidebar, ideal: sidebar, max: sidebar)
+                    .navigationSplitViewColumnWidth(min: sidebarMin, ideal: sidebarIdeal, max: sidebarMax)
             } content: {
                 PreviewColumnView(state: state)
-                    .navigationSplitViewColumnWidth(min: pane, ideal: pane, max: pane)
+                    .navigationSplitViewColumnWidth(min: paneMin, ideal: paneIdeal, max: paneMax)
             } detail: {
                 ChatTabView(state: state, showSettingsInToolbar: true, onSettingsTap: { showSettingsSheet = true })
-                    .navigationSplitViewColumnWidth(min: pane, ideal: pane, max: pane)
+                    .navigationSplitViewColumnWidth(min: paneMin, ideal: paneIdeal, max: paneMax)
             }
             .navigationSplitViewStyle(.balanced)
         }

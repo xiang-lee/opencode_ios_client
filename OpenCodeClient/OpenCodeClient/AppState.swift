@@ -129,6 +129,7 @@ final class AppState {
     private static let aiBuilderLastOKSignatureKey = "aiBuilderLastOKSignature"
     private static let aiBuilderLastOKTestedAtKey = "aiBuilderLastOKTestedAt"
     private static let draftInputsBySessionKey = "draftInputsBySession"
+    private static let selectedModelBySessionKey = "selectedModelBySession"
 
     init() {
         _serverURL = UserDefaults.standard.string(forKey: Self.serverURLKey) ?? APIClient.defaultServer
@@ -152,10 +153,28 @@ final class AppState {
            let decoded = try? JSONDecoder().decode([String: String].self, from: data) {
             draftInputsBySessionID = decoded
         }
+
+        if let data = UserDefaults.standard.data(forKey: Self.selectedModelBySessionKey),
+           let decoded = try? JSONDecoder().decode([String: String].self, from: data) {
+            selectedModelIDBySessionID = decoded
+        }
     }
 
     // Unsent composer drafts per session.
     private var draftInputsBySessionID: [String: String] = [:]
+
+    // Selected model (providerID/modelID) per session.
+    private var selectedModelIDBySessionID: [String: String] = [:]
+
+    private func persistSelectedModelMap() {
+        if selectedModelIDBySessionID.isEmpty {
+            UserDefaults.standard.removeObject(forKey: Self.selectedModelBySessionKey)
+            return
+        }
+        if let data = try? JSONEncoder().encode(selectedModelIDBySessionID) {
+            UserDefaults.standard.set(data, forKey: Self.selectedModelBySessionKey)
+        }
+    }
 
     func draftText(for sessionID: String?) -> String {
         guard let sessionID else { return "" }
@@ -292,6 +311,33 @@ final class AppState {
         return modelPresets[selectedModelIndex]
     }
 
+    func setSelectedModelIndex(_ index: Int) {
+        guard modelPresets.indices.contains(index) else { return }
+        selectedModelIndex = index
+        guard let sessionID = currentSessionID else { return }
+        selectedModelIDBySessionID[sessionID] = modelPresets[index].id
+        persistSelectedModelMap()
+    }
+
+    private func applySavedModelForCurrentSession() {
+        guard let sessionID = currentSessionID else { return }
+        guard let saved = selectedModelIDBySessionID[sessionID] else { return }
+        guard let idx = modelPresets.firstIndex(where: { $0.id == saved }) else { return }
+        selectedModelIndex = idx
+    }
+
+    private func inferAndStoreModelForCurrentSessionIfMissing() {
+        guard let sessionID = currentSessionID else { return }
+        guard selectedModelIDBySessionID[sessionID] == nil else { return }
+
+        guard let info = messages.reversed().compactMap({ $0.info.resolvedModel }).first else { return }
+        guard let idx = modelPresets.firstIndex(where: { $0.providerID == info.providerID && $0.modelID == info.modelID }) else { return }
+
+        selectedModelIndex = idx
+        selectedModelIDBySessionID[sessionID] = modelPresets[idx].id
+        persistSelectedModelMap()
+    }
+
     var currentSession: Session? {
         guard let id = currentSessionID else { return nil }
         return sessions.first { $0.id == id }
@@ -345,6 +391,7 @@ final class AppState {
             sessions = try await apiClient.sessions()
             if currentSessionID == nil, let first = sessions.first {
                 currentSessionID = first.id
+                applySavedModelForCurrentSession()
             }
         } catch {
             connectionError = error.localizedDescription
@@ -366,9 +413,11 @@ final class AppState {
         messages = []
         partsByMessage = [:]
         currentSessionID = session.id
+        applySavedModelForCurrentSession()
         Task {
             await refreshSessions()
             await loadMessages()
+            inferAndStoreModelForCurrentSessionIfMissing()
             await loadSessionDiff()
             await loadSessionTodos()
 
@@ -399,6 +448,10 @@ final class AppState {
             let session = try await apiClient.createSession()
             sessions.insert(session, at: 0)
             currentSessionID = session.id
+            if let m = selectedModel {
+                selectedModelIDBySessionID[session.id] = m.id
+                persistSelectedModelMap()
+            }
             messages = []
             partsByMessage = [:]
         } catch {

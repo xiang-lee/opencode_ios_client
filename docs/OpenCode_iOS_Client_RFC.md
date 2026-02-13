@@ -178,6 +178,7 @@ final class AppState {
 - **权限**：`permission.asked` 时展示卡片，用户手动批准/拒绝，调用 `POST /session/:id/permissions/:permissionID`
 - **输入**：支持多行，发送用 `prompt_async`；busy 时消息由服务端排队
 - **草稿**：按 sessionID 持久化未发送输入；切换 session 可恢复；发送成功后清空
+- **模型选择**：按 sessionID 记忆当前选择的模型；切换 Session 自动恢复（避免全局 model 覆盖）
 - **语音输入**：输入框右侧麦克风按钮；录音后调用 AI Builder `POST /v1/audio/transcriptions` 转写，结果追加到输入框；Base URL 与 token 在 Settings → Speech Recognition 配置并存 Keychain
 - **Abort**：提供按钮调用 `POST /session/:id/abort`
 
@@ -192,6 +193,7 @@ final class AppState {
 - **条件**：`horizontalSizeClass == .regular` 或 `userInterfaceIdiom == .pad` 时启用
 - **布局**：无 Tab Bar；三栏（NavigationSplitView）：左栏 Workspace（Files + Sessions），中栏 Preview（文件预览），右栏 Chat（消息流 + 输入框）
 - **列宽**：Workspace 约占 1/6；Preview 与 Chat 平分剩余 5/6（各 5/12）
+- **可拖动**：三栏宽度支持拖动调整；以上为默认 ideal 宽度
 - **文件预览**：iPad 上不使用 sheet。左栏选择文件、或 Chat 中点击 tool/patch 的 file path 时，更新中栏 Preview 预览对应文件
 - **刷新**：Preview 中栏右上角提供刷新按钮（重新加载文件内容），用于外部变更后的手动刷新
 - **Toolbar**：第一行统一：左（新建 Session、重命名、Session 列表）+ 右（模型切换、Context Usage ring、**Settings 按钮**）；Settings 点击以 sheet 打开

@@ -135,7 +135,7 @@ struct ChatTabView: View {
                     HStack(spacing: 6) {
                         ForEach(Array(state.modelPresets.enumerated()), id: \.element.id) { index, preset in
                             Button {
-                                state.selectedModelIndex = index
+                                state.setSelectedModelIndex(index)
                             } label: {
                                 Text(useCompactModelLabels ? preset.compactLabel : preset.displayName)
                                     .font(.caption.weight(.semibold))
