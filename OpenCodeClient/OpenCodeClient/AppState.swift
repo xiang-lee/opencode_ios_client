@@ -283,6 +283,10 @@ final class AppState {
     // Track when a session status was last updated via SSE.
     private var sessionStatusUpdatedAt: [String: Date] = [:]
 
+    // Debounce session activity text changes (avoid rapid flipping).
+    private var activityTextLastChangeAt: [String: Date] = [:]
+    private var activityTextPendingTask: [String: Task<Void, Never>] = [:]
+
     var currentSessionActivity: SessionActivity? {
         guard let sid = currentSessionID else { return nil }
         return sessionActivities[sid]
@@ -473,7 +477,7 @@ final class AppState {
         guard isConnected else { return }
         await loadSessions()
         if let statuses = try? await apiClient.sessionStatus() {
-            sessionStatuses = statuses
+            mergePolledSessionStatuses(statuses)
         }
     }
 
@@ -980,6 +984,12 @@ final class AppState {
                     sessionStatuses[sessionID] = decoded
                     sessionStatusUpdatedAt[sessionID] = Date()
 
+                    if prev?.type != decoded.type || prev?.message != decoded.message {
+                        Self.logger.debug(
+                            "session.status(sse) session=\(sessionID, privacy: .public) prev=\(prev?.type ?? "nil", privacy: .public) next=\(decoded.type, privacy: .public)"
+                        )
+                    }
+
                     updateSessionActivity(sessionID: sessionID, previous: prev, current: decoded)
 
                     if sessionID == currentSessionID, !isBusySession(decoded) {
@@ -1184,7 +1194,13 @@ final class AppState {
             if let updatedAt = sessionStatusUpdatedAt[sid], now.timeIntervalSince(updatedAt) < 5 {
                 continue
             }
+            let prev = sessionStatuses[sid]
             sessionStatuses[sid] = st
+            if prev?.type != st.type {
+                Self.logger.debug(
+                    "session.status(poll) session=\(sid, privacy: .public) prev=\(prev?.type ?? "nil", privacy: .public) next=\(st.type, privacy: .public)"
+                )
+            }
         }
     }
 
@@ -1210,9 +1226,39 @@ final class AppState {
 
     private func refreshSessionActivityText(sessionID: String) {
         guard isBusySession(sessionStatuses[sessionID]) else { return }
+        guard sessionActivities[sessionID]?.state == .running else { return }
+        guard let next = bestSessionActivityText(sessionID: sessionID) else { return }
+        setSessionActivityText(sessionID: sessionID, next)
+    }
+
+    private func setSessionActivityText(sessionID: String, _ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
         guard var a = sessionActivities[sessionID], a.state == .running else { return }
-        a.text = bestSessionActivityText(sessionID: sessionID) ?? a.text
-        sessionActivities[sessionID] = a
+        if a.text == trimmed { return }
+
+        let now = Date()
+        let last = activityTextLastChangeAt[sessionID] ?? .distantPast
+        let delta = now.timeIntervalSince(last)
+        if delta >= 2.5 {
+            a.text = trimmed
+            sessionActivities[sessionID] = a
+            activityTextLastChangeAt[sessionID] = now
+            activityTextPendingTask[sessionID]?.cancel()
+            activityTextPendingTask[sessionID] = nil
+            return
+        }
+
+        activityTextPendingTask[sessionID]?.cancel()
+        let delay = max(0, 2.5 - delta)
+        activityTextPendingTask[sessionID] = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled else { return }
+            guard self.isBusySession(self.sessionStatuses[sessionID]) else { return }
+            guard let best = self.bestSessionActivityText(sessionID: sessionID) else { return }
+            self.setSessionActivityText(sessionID: sessionID, best)
+        }
     }
 
     private func bestSessionActivityText(sessionID: String) -> String? {
