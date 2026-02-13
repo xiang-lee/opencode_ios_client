@@ -4,6 +4,22 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
+
+private extension ModelPreset {
+    var compactLabel: String {
+        switch modelID {
+        case "gpt-5.2": return "GPT"
+        case "gpt-5.3-codex-spark": return "Spark"
+        case "anthropic/claude-opus-4-6": return "Opus"
+        case "glm-5": return "GLM"
+        default:
+            return displayName
+        }
+    }
+}
 
 private enum MessageGroupItem: Identifiable {
     case user(MessageWithParts)
@@ -32,6 +48,14 @@ struct ChatTabView: View {
     @State private var isTranscribing = false
     @State private var speechError: String?
     @Environment(\.horizontalSizeClass) private var sizeClass
+
+    private var useCompactModelLabels: Bool {
+#if canImport(UIKit)
+        return UIDevice.current.userInterfaceIdiom == .phone
+#else
+        return false
+#endif
+    }
 
     private var useGridCards: Bool { sizeClass == .regular }
 
@@ -113,7 +137,7 @@ struct ChatTabView: View {
                             Button {
                                 state.selectedModelIndex = index
                             } label: {
-                                Text(preset.displayName)
+                                Text(useCompactModelLabels ? preset.compactLabel : preset.displayName)
                                     .font(.caption.weight(.semibold))
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 7)
