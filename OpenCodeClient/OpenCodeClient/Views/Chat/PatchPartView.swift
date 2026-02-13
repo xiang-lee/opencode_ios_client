@@ -12,6 +12,7 @@ struct PatchPartView: View {
 
     var body: some View {
         let fileCount = part.files?.count ?? 0
+        let accent = Color.orange
         Button {
             let paths = part.filePathsForNavigation
             if paths.count == 1 {
@@ -24,9 +25,10 @@ struct PatchPartView: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "doc.text.fill")
-                    .foregroundStyle(.orange.opacity(0.7))
+                    .foregroundStyle(accent)
                 Text("\(fileCount) file\(fileCount == 1 ? "" : "s") changed")
                     .fontWeight(.medium)
+                    .foregroundStyle(accent)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption2)
@@ -35,7 +37,11 @@ struct PatchPartView: View {
             .font(.caption2)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
-            .background(Color.orange.opacity(0.06))
+            .background(accent.opacity(0.07))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(accent.opacity(0.14), lineWidth: 1)
+            )
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)

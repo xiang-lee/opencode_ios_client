@@ -54,6 +54,7 @@
 - [x] **新增模型**：增加 `openai` / `gpt-5.3-codex-spark`（GPT-5.3 Codex Spark）
 - [x] **iPhone 模型短名**：iPhone 顶栏模型 chip 显示 `GPT` / `Spark` / `Opus` / `GLM`，iPad 显示全称
 - [x] **Tool 卡片颜色区分**：`todowrite` 使用绿色强调，其它 tool 使用主题色（accentColor），便于快速扫读
+- [x] **Patch 卡片样式对齐**：与 tool 卡片一致的淡底色 + 细描边，信息更清晰
 - [x] **Session title 自动更新**：监听 SSE `session.updated` 事件 + 发送后轮询刷新，无需手动重命名
 - [x] **Thinking 打字机效果修复**：收到 `message.part.updated`（reasoning）时固定在消息列表底部显示 `StreamingReasoningView`，不再依赖 messages 已有 reasoning part
 - [x] **录音前校验 AI Builder Token**：token 为空 / 正在测试 / 测试未通过时弹窗提示先去 Settings 配置
