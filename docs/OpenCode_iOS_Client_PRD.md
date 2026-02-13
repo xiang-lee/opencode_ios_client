@@ -141,7 +141,7 @@ iPhone 采用底部 Tab Bar，三个 Tab：
 
 **大屏布局（iPad / Vision Pro）补充**：为了利用横向空间，`tool` / `patch` / permission 卡片可采用 **三列网格**横向填充（不足自动换行）；但 `text`（最终回答）仍按整行展示，避免阅读断裂。
 
-**流式更新（Think Streaming）**：行为与官方 Web 客户端对齐。SSE 推送 `message.part.updated` 时，若有 `delta` 字段，客户端增量追加到对应 text/reasoning Part，实现打字机效果；若无 delta 则全量 reload。使用 `messageID` + `partID` 定位 Part。详见 [THINK_STREAMING.md](THINK_STREAMING.md)。**注**：Tool output 的实时流式（如 terminal 输出逐行）当前 API 不支持，output 仅在 completed 时一次性返回。
+**流式更新（Think Streaming）**：行为与官方 Web 客户端对齐。SSE 推送 `message.part.updated` 时，若有 `delta` 字段，客户端增量追加到对应 text/reasoning Part，实现打字机效果；若无 delta 则全量 reload。使用 `messageID` + `partID` 定位 Part。。**注**：Tool output 的实时流式（如 terminal 输出逐行）当前 API 不支持，output 仅在 completed 时一次性返回。
 
 **Session 状态指示器**：消息流顶部显示当前 session 状态（idle / busy / error）。状态来源于 `session.status` SSE 事件。busy 时显示进度动画。
 
@@ -158,7 +158,7 @@ OpenCode 绝大多数情况下不会请求 permission，若出现 `permission.as
 
 底部固定输入框，支持多行文本。右侧发送按钮。输入框上方可选显示当前选中模型的小标签。
 
-**语音输入（Speech Recognition）**：输入框右侧提供麦克风按钮。点击开始录音，再次点击停止并调用语音转写 API，将转写文本追加到输入框。token 通过 Settings 配置并存 Keychain，不提交到 git。详见 `docs/SPEECH_RECOGNITION.md`。
+**语音输入（Speech Recognition）**：输入框右侧提供麦克风按钮。点击开始录音，再次点击停止并调用语音转写 API，将转写文本追加到输入框。Token 通过 Settings 配置并存 Keychain，不提交到 git。
 
 **消息队列**：当 session 处于 busy 状态时，用户发送的消息进入队列。OpenCode Server 的 `POST /session/:id/prompt_async` 在服务端已支持队列——busy 时会将消息入队，当前运行结束后自动处理。iOS 端调用 `prompt_async` 即可，无需本地维护队列。若未来 API 变更，可退化为本地队列维护。
 
@@ -526,7 +526,7 @@ App 进入前台
 | 文档 Diff | 高亮 changes（优先 Preview 内高亮，否则 Markdown 内高亮） |
 | Session Diff | 当前 session 的变更文件列表和 diff 视图 |
 | 单文件 Diff | 文件的 uncommitted changes |
-| **Think Streaming** | delta 增量更新（打字机效果），见 [THINK_STREAMING.md](THINK_STREAMING.md) |
+| **Think Streaming** | delta 增量更新（打字机效果） |
 | **iPad / Vision Pro 布局** | 无 Tab Bar；左右分栏：左 Files 预览、右 Chat；Settings 作为第一行 toolbar 按钮 |
 
 **预估工作量**：2-3 周
