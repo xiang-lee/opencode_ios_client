@@ -40,15 +40,15 @@
 
 - 现状：busy 场景每 2 秒轮询一次，最多 90 次，并每轮调用 `loadMessages()`。
 - 证据：`OpenCodeClient/OpenCodeClient/AppState.swift:834`、`OpenCodeClient/OpenCodeClient/AppState.swift:858`
-- 背景：当前不是“只用轮询”，而是 **SSE + 轮询兜底并存**。
-  - SSE 是主通道；但在移动端切前后台、网络抖动、事件未重放（例如 permission.asked）时，可能漏事件。
-  - 因此引入轮询作为“最终一致性兜底”，保证状态不丢。
-  - 问题不在“有无轮询”，而在“轮询频率偏高 + 拉取粒度偏粗（全量消息）”。
+- 背景：目标应调整为 **SSE 主通道 + 首次全量同步一次**，而非持续轮询。
+  - App 进入会话/重连后，先做一次全量 `loadMessages()` + `GET /permission`，用于补齐可能错过的事件。
+  - 首次同步完成后，常态只依赖 SSE 推送，不再做 2 秒周期轮询。
+  - permission 场景可由这次首次全量/权限拉取覆盖，无需额外持续轮询。
 - 风险：会话长、消息多时，反复全量解码 + UI 重组，容易带来电量与温度压力。
 - 建议：
-  - 优先用 SSE 驱动；轮询退化为指数退避（2s/4s/8s）。
-  - 增量拉取（基于最后 messageID/time）替代全量拉取。
-  - busy->idle 后立即停止所有兜底轮询（已部分做到，可再收紧）。
+  - 移除 busy 期间周期轮询；保留“进入会话/重连时仅一次”的全量补偿同步。
+  - 保留手动下拉刷新作为用户可控兜底。
+  - 若后续实测仍有漏事件，再引入“有条件、低频、短窗口”的增量补偿，而不是常驻轮询。
 
 #### 2.2 列表锚点仍做全量字符串拼接（P2）
 
@@ -88,10 +88,29 @@
 ## Priority Backlog
 
 1. **P0**：SSH host key 校验落地（TOFU/pin）。
-2. **P1**：轮询降频 + 增量消息同步，降低发热与流量。
+2. **P1**：SSE 主通道化：改为“首次全量同步一次”，移除 busy 常驻轮询。
 3. **P1**：继续拆分 AppState（先拆 ActivityTracker 与 PermissionController）。
 4. **P2**：activity row 对缺 completed 的展示策略改为非伪精确。
 5. **P2**：补 activity/polling 关键单测。
+
+## Iteration Plan（SSE 主通道）
+
+### Iteration 1 - 行为收敛（低风险）
+
+- 进入 session、SSE 重连成功后：执行一次 `loadMessages()` + `refreshPendingPermissions()`。
+- 删除/禁用 `startPollingCurrentSession(forBusySession:)` 的周期调度路径。
+- 保留用户手动刷新入口，作为显式兜底。
+
+### Iteration 2 - 观测与验证
+
+- 增加轻量日志：记录“首次同步触发点、耗时、消息数量、权限数量”。
+- 在真实网络抖动与前后台切换场景回归：确认 permission 卡片与 activity 行不丢。
+- 对比改造前后：CPU 时间、网络请求数、设备温升趋势。
+
+### Iteration 3 - 条件化补偿（仅在必要时）
+
+- 仅当监控证实存在漏事件，再增加“短窗口、低频、可停机”的增量补偿。
+- 增量同步必须带停止条件，避免再次演化为常驻轮询。
 
 ## Final Verdict
 
