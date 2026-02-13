@@ -27,7 +27,9 @@ enum AIBuildersAudioClient {
         baseURL: String,
         token: String,
         audioFileURL: URL,
-        language: String? = nil
+        language: String? = nil,
+        prompt: String? = nil,
+        terms: String? = nil
     ) async throws -> TranscriptionResponse {
         let trimmedBase = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedBase.isEmpty else { throw AIBuildersAudioError.invalidBaseURL }
@@ -54,6 +56,16 @@ enum AIBuildersAudioClient {
             append("--\(boundary)\r\n")
             append("Content-Disposition: form-data; name=\"language\"\r\n\r\n")
             append("\(language)\r\n")
+        }
+        if let prompt, !prompt.isEmpty {
+            append("--\(boundary)\r\n")
+            append("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n")
+            append("\(prompt)\r\n")
+        }
+        if let terms, !terms.isEmpty {
+            append("--\(boundary)\r\n")
+            append("Content-Disposition: form-data; name=\"terms\"\r\n\r\n")
+            append("\(terms)\r\n")
         }
 
         let filename = audioFileURL.lastPathComponent.isEmpty ? "audio.m4a" : audioFileURL.lastPathComponent

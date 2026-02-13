@@ -126,6 +126,8 @@ final class AppState {
     private static let passwordKeychainKey = "password"
     private static let aiBuilderBaseURLKey = "aiBuilderBaseURL"
     private static let aiBuilderTokenKeychainKey = "aiBuilderToken"
+    private static let aiBuilderCustomPromptKey = "aiBuilderCustomPrompt"
+    private static let aiBuilderTerminologyKey = "aiBuilderTerminology"
     private static let aiBuilderLastOKSignatureKey = "aiBuilderLastOKSignature"
     private static let aiBuilderLastOKTestedAtKey = "aiBuilderLastOKTestedAt"
     private static let draftInputsBySessionKey = "draftInputsBySession"
@@ -138,6 +140,8 @@ final class AppState {
 
         _aiBuilderBaseURL = UserDefaults.standard.string(forKey: Self.aiBuilderBaseURLKey) ?? "https://space.ai-builders.com/backend"
         _aiBuilderToken = KeychainHelper.load(forKey: Self.aiBuilderTokenKeychainKey) ?? ""
+        _aiBuilderCustomPrompt = UserDefaults.standard.string(forKey: Self.aiBuilderCustomPromptKey) ?? Self.defaultAIBuilderCustomPrompt
+        _aiBuilderTerminology = UserDefaults.standard.string(forKey: Self.aiBuilderTerminologyKey) ?? Self.defaultAIBuilderTerminology
 
         // Restore last known-good AI Builder connection state if token/baseURL unchanged.
         let storedSig = UserDefaults.standard.string(forKey: Self.aiBuilderLastOKSignatureKey)
@@ -239,6 +243,31 @@ final class AppState {
             UserDefaults.standard.removeObject(forKey: Self.aiBuilderLastOKTestedAtKey)
         }
     }
+
+    /// Default custom prompt for speech recognition. Instructs engine on filename style.
+    private static let defaultAIBuilderCustomPrompt = "All file and directory names should use snake_case (lowercase with underscores)."
+
+    /// Default terminology (comma-separated) from workspace routing.
+    private static let defaultAIBuilderTerminology = "adhoc_jobs, life_consulting, survey_sessions, thought_review"
+
+    private var _aiBuilderCustomPrompt: String = ""
+    var aiBuilderCustomPrompt: String {
+        get { _aiBuilderCustomPrompt }
+        set {
+            _aiBuilderCustomPrompt = newValue
+            UserDefaults.standard.set(newValue, forKey: Self.aiBuilderCustomPromptKey)
+        }
+    }
+
+    private var _aiBuilderTerminology: String = ""
+    var aiBuilderTerminology: String {
+        get { _aiBuilderTerminology }
+        set {
+            _aiBuilderTerminology = newValue
+            UserDefaults.standard.set(newValue, forKey: Self.aiBuilderTerminologyKey)
+        }
+    }
+
     var aiBuilderConnectionError: String? = nil
     var aiBuilderConnectionOK: Bool = false
     var aiBuilderLastTestedAt: Date? = nil
@@ -642,11 +671,15 @@ final class AppState {
         guard !token.isEmpty else { throw AIBuildersAudioError.missingToken }
 
         let base = aiBuilderBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let prompt = aiBuilderCustomPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let terms = aiBuilderTerminology.trimmingCharacters(in: .whitespacesAndNewlines)
         let resp = try await AIBuildersAudioClient.transcribe(
             baseURL: base,
             token: token,
             audioFileURL: audioFileURL,
-            language: language
+            language: language,
+            prompt: prompt.isEmpty ? nil : prompt,
+            terms: terms.isEmpty ? nil : terms
         )
         return resp.text
     }

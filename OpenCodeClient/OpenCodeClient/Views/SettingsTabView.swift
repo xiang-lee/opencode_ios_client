@@ -77,6 +77,13 @@ struct SettingsTabView: View {
                     SecureField("AI Builder Token", text: $state.aiBuilderToken)
                         .textContentType(.password)
 
+                    TextField("Custom Prompt", text: $state.aiBuilderCustomPrompt, axis: .vertical)
+                        .lineLimit(3...6)
+
+                    TextField("Terminology (comma-separated)", text: $state.aiBuilderTerminology)
+                        .textContentType(.none)
+                        .autocapitalization(.none)
+
                     HStack {
                         Button {
                             Task { await state.testAIBuilderConnection() }
