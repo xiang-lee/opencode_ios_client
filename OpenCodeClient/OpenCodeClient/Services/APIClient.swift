@@ -11,7 +11,7 @@ actor APIClient {
     private var password: String?
 
     // Default to localhost to avoid leaking a personal LAN IP in open source repos.
-    static let defaultServer = "192.168.180.128:4096"
+    static let defaultServer = APIConstants.defaultServer
 
     init(baseURL: String = defaultServer, username: String? = nil, password: String? = nil) {
         self.baseURL = baseURL.hasPrefix("http") ? baseURL : "http://\(baseURL)"

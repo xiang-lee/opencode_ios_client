@@ -132,14 +132,14 @@ struct ContentView: View {
     private var splitLayout: some View {
         GeometryReader { geo in
             let total = geo.size.width
-            let sidebarIdeal = total / 6
-            let paneIdeal = (total - sidebarIdeal) / 2
+            let sidebarIdeal = total * LayoutConstants.SplitView.sidebarWidthFraction
+            let paneIdeal = total * LayoutConstants.SplitView.previewWidthFraction
 
-            let sidebarMin = min(sidebarIdeal, total * 0.10)
-            let sidebarMax = max(sidebarIdeal, total * 0.33)
+            let sidebarMin = min(sidebarIdeal, total * LayoutConstants.SplitView.sidebarMinFraction)
+            let sidebarMax = max(sidebarIdeal, total * LayoutConstants.SplitView.sidebarMaxFraction)
 
-            let paneMin = min(paneIdeal, total * 0.25)
-            let paneMax = max(paneIdeal, total * 0.70)
+            let paneMin = min(paneIdeal, total * LayoutConstants.SplitView.paneMinFraction)
+            let paneMax = max(paneIdeal, total * LayoutConstants.SplitView.paneMaxFraction)
 
             NavigationSplitView {
                 SplitSidebarView(state: state)
