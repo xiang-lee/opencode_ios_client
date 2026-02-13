@@ -120,6 +120,8 @@ iPhone 采用底部 Tab Bar，三个 Tab：
 
 位于 Chat 页面顶部，横向滚动的 chip 列表。每个 chip 代表一个预设模型（在 Settings 中配置），格式如 "Claude Opus" / "Gemini 2.5 Pro" / "GPT-4.1"。点击切换，下一条消息将使用选中的模型。当前选中的 chip 高亮显示。
 
+**iPhone 显示策略**：为避免顶栏被挤压，iPhone 上 chip 采用短名（`GPT` / `Spark` / `Opus` / `GLM`）；iPad 上显示全称。
+
 技术实现：切换模型不需要调用 API，只是改变本地状态。发送消息时在 `POST /session/:id/message` 的 body 中携带 `model: { providerID, modelID }` 字段。OpenCode 的设计本身就支持 per-message 的模型指定。
 
 #### 4.2.1.1 Context Usage（上下文占用）指示器
