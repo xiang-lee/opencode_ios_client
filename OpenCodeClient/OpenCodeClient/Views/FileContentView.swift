@@ -52,8 +52,12 @@ struct FileContentView: View {
 
     @ViewBuilder
     private func contentView(text: String) -> some View {
-        if isMarkdown && showPreview {
-            MarkdownPreviewView(text: text)
+        if isMarkdown {
+            if showPreview {
+                MarkdownPreviewView(text: text)
+            } else {
+                RawTextView(text: text, monospaced: true)
+            }
         } else {
             CodeView(text: text, path: filePath)
         }
@@ -125,6 +129,22 @@ struct MarkdownPreviewView: View {
         ScrollView {
             Markdown(text)
                 .textSelection(.enabled)
+                .padding()
+        }
+    }
+}
+
+/// Raw text view for Markdown source (wraps to fill available width).
+struct RawTextView: View {
+    let text: String
+    var monospaced: Bool = false
+
+    var body: some View {
+        ScrollView {
+            Text(text)
+                .font(monospaced ? .system(.body, design: .monospaced) : .body)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
         }
     }

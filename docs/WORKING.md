@@ -52,6 +52,7 @@
 - [x] 1.1 AppState 详细规划
 - [x] Bug: tool layout — thinking 并入最后一条 MessageRowView，不另起行打断网格
 - [x] Bug: Diff/文件预览 — 横向滚动、minWidth 填满、textSelection
+- [x] Bug: Markdown 源码视图宽度 — Markdown/Preview 切换后源码视图只占左半边导致提前换行（改用 RawTextView 让文本充满可用宽度）
 - [x] Todo 2.4 按方案 B 暂不强调
 - [x] 最近 commit/push：9b4b842（tool layout、Diff 预览、Settings HTTP info、1.1 规划、2.4）
 - [x] **GLM-4.7 → GLM5**：模型更新为 `zai-coding-plan` / `glm-5`
