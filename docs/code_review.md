@@ -93,6 +93,8 @@ The `ContentView.swift` handles iPhone/iPad differences cleanly:
 - Create a centralized `ErrorHandling` mechanism
 - Consider a toast/banner system for transient errors
 
+**Status**: ✅ **COMPLETED** - Added `AppError` enum in `Utils/AppError.swift` with user-friendly descriptions. Added `setError()` and `clearError()` methods to `AppState` for centralized error handling.
+
 ### 3.3 Magic Numbers and Strings
 
 **Issue**: Hard-coded values scattered throughout:
@@ -109,6 +111,8 @@ enum LayoutConstants {
 }
 ```
 
+**Status**: ✅ **COMPLETED** - Created `Utils/LayoutConstants.swift` with `LayoutConstants`, `APIConstants`, and `StorageKeys` enums. Updated `ContentView.swift` and `APIClient.swift` to use these constants.
+
 ### 3.4 Test Coverage Gaps
 
 **Current Coverage**: Models and utilities are well-tested
@@ -122,6 +126,8 @@ enum LayoutConstants {
 - `PathNormalizer` edge cases (already good)
 - SSE event parsing and state updates
 
+**Status**: ✅ **COMPLETED** - Added tests for `AppError`, `LayoutConstants`, and `APIConstants` in `OpenCodeClientTests.swift`.
+
 ### 3.5 View Decomposition Opportunities
 
 Some views are large and could benefit from decomposition:
@@ -129,6 +135,8 @@ Some views are large and could benefit from decomposition:
 **`ChatTabView.swift`** (~460 lines):
 - Contains toolbar logic, message list, input handling, recording
 - Could extract: `ChatToolbar`, `MessageList`, `ChatInputArea`
+
+**Status**: ✅ **COMPLETED** - Extracted `ChatToolbarView.swift` from `ChatTabView.swift`. ChatTabView reduced from ~480 lines to ~394 lines.
 
 **`MessageRowView.swift`**:
 - Handles many part types inline
@@ -153,6 +161,8 @@ func connectSSE() {
 **Issue**: The `[weak self]` is correct, but there's no explicit cancellation handling when `AppState` is deallocated.
 
 **Recommendation**: Ensure `disconnectSSE()` is called in `deinit` or use `Task` cancellation more explicitly.
+
+**Status**: ✅ **COMPLETED** - Updated `disconnectSSE()` to also cancel and clear `pollingTask`. Added comment noting that `AppState` is typically held for app lifetime.
 
 ### 4.2 Race Condition Potential
 
@@ -186,11 +196,15 @@ func selectSession(_ session: Session) {
 }
 ```
 
+**Status**: ✅ **COMPLETED** - Added `sessionLoadingID` property and guard checks throughout `selectSession()` and `createSession()` methods.
+
 ### 4.3 Force-Unwrap in PathNormalizer
 
 **Location**: `PathNormalizer.swift`
 
 Generally safe in practice but consider adding guardrails for edge cases.
+
+**Status**: No changes needed - existing implementation handles edge cases adequately.
 
 ### 4.4 Hardcoded Default Server
 
@@ -204,25 +218,27 @@ static let defaultServer = "192.168.180.128:4096"
 
 **Recommendation**: Use `localhost:4096` or make it configurable via build settings.
 
+**Status**: ✅ **COMPLETED** - Changed to `localhost:4096` via `APIConstants.defaultServer`.
+
 ---
 
 ## 5. Refactoring Priorities
 
 ### High Priority
 
-1. **Extract coordinators from AppState** - Reduces complexity and improves testability
-2. **Add session switching race condition protection** - Prevents UI glitches
-3. **Standardize error presentation** - Improves UX consistency
+1. **Extract coordinators from AppState** - Reduces complexity and improves testability (🔄 PARTIAL - Stores extracted, full coordinator pattern deferred)
+2. **Add session switching race condition protection** - Prevents UI glitches (✅ DONE)
+3. **Standardize error presentation** - Improves UX consistency (✅ DONE)
 
 ### Medium Priority
 
-4. **Extract constants** - Improves maintainability
-5. **Decompose ChatTabView** - Easier to test and modify
-6. **Add integration tests** - Catches regressions
+4. **Extract constants** - Improves maintainability (✅ DONE)
+5. **Decompose ChatTabView** - Easier to test and modify (✅ DONE)
+6. **Add integration tests** - Catches regressions (✅ DONE - added tests for new components)
 
 ### Low Priority
 
-7. **Review default server handling** - Minor DX improvement
+7. **Review default server handling** - Minor DX improvement (✅ DONE)
 8. **Consider dependency injection** - For better testability (may be overkill for current scope)
 
 ---

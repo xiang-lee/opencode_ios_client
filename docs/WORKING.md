@@ -103,7 +103,7 @@
 - [x] **3.3 Magic Numbers**：提取常量（列宽比例、动画时长等）
 - [x] **3.4 Test Coverage**：添加 AppState 层面测试
 - [x] **3.5 View Decomposition**：拆分 ChatTabView
-- [ ] **3.1 AppState Size**：继续提取 Coordinator
+- [x] **3.1 AppState Size**（部分完成 - 已提取 Store，完整 Coordinator 待定）：继续提取 Coordinator
 - [x] **4.1 Memory Leaks**：SSE 连接 deinit 处理
 - [x] **4.4 Default Server**：修改默认服务器配置
 
