@@ -959,3 +959,97 @@ struct PermissionControllerTests {
         #expect(list[0].permissionID == "p2")
     }
 }
+
+struct ActivityTrackerTests {
+
+    @Test func thinkingTopicFromLeadingBoldText() {
+        let text = "**Refactor Session Runtime**\nThen continue details"
+        #expect(ActivityTracker.formatThinkingFromReasoningText(text) == "Thinking - Refactor Session Runtime")
+    }
+
+    @Test func toolStatusMappingWithReason() throws {
+        let json = """
+        {"id":"p1","messageID":"m1","sessionID":"s1","type":"tool","text":null,"tool":"edit","callID":"c1","state":{"status":"running","title":"Update AppState"},"metadata":null,"files":null}
+        """
+        let part = try JSONDecoder().decode(Part.self, from: Data(json.utf8))
+        #expect(ActivityTracker.formatStatusFromPart(part) == "Making edits - Update AppState")
+    }
+
+    @Test func debounceDelayWithinWindow() {
+        let now = Date(timeIntervalSince1970: 200)
+        let last = Date(timeIntervalSince1970: 198)
+        let delay = ActivityTracker.debounceDelay(lastChangeAt: last, now: now)
+        #expect(delay == 0.5)
+    }
+
+    @Test func debounceDelayOutsideWindow() {
+        let now = Date(timeIntervalSince1970: 200)
+        let last = Date(timeIntervalSince1970: 190)
+        let delay = ActivityTracker.debounceDelay(lastChangeAt: last, now: now)
+        #expect(delay == 0)
+    }
+
+    @Test func updateSessionActivityBusyToCompletedUsesCompletedTimestamp() {
+        let user = makeMessage(id: "u1", sessionID: "s1", role: "user", created: 100_000, completed: nil)
+        let assistant = makeMessage(id: "a1", sessionID: "s1", role: "assistant", created: 110_000, completed: 130_000)
+        let rows = [
+            MessageWithParts(info: user, parts: []),
+            MessageWithParts(info: assistant, parts: []),
+        ]
+
+        let running = SessionActivity(
+            sessionID: "s1",
+            state: .running,
+            text: "Thinking",
+            startedAt: Date(timeIntervalSince1970: 100),
+            endedAt: nil,
+            anchorMessageID: nil
+        )
+
+        let previous = SessionStatus(type: "busy", attempt: 1, message: "Thinking", next: nil)
+        let current = SessionStatus(type: "idle", attempt: nil, message: nil, next: nil)
+        let updated = ActivityTracker.updateSessionActivity(
+            sessionID: "s1",
+            previous: previous,
+            current: current,
+            existing: running,
+            messages: rows,
+            currentSessionID: "s1",
+            now: Date(timeIntervalSince1970: 999)
+        )
+
+        #expect(updated?.state == .completed)
+        #expect(updated?.endedAt?.timeIntervalSince1970 == 130)
+        #expect(updated?.anchorMessageID == "a1")
+    }
+
+    @Test func bestActivityTextPrefersStatusMessage() {
+        let statuses = ["s1": SessionStatus(type: "busy", attempt: 1, message: "Running formatter", next: nil)]
+        let text = ActivityTracker.bestSessionActivityText(
+            sessionID: "s1",
+            currentSessionID: "s1",
+            sessionStatuses: statuses,
+            messages: [],
+            streamingReasoningPart: nil,
+            streamingPartTexts: [:]
+        )
+        #expect(text == "Running formatter")
+    }
+
+    private func makeMessage(id: String, sessionID: String, role: String, created: Int, completed: Int?) -> Message {
+        Message(
+            id: id,
+            sessionID: sessionID,
+            role: role,
+            parentID: nil,
+            providerID: nil,
+            modelID: nil,
+            model: nil,
+            error: nil,
+            time: .init(created: created, completed: completed),
+            finish: nil,
+            tokens: nil,
+            cost: nil
+        )
+    }
+}

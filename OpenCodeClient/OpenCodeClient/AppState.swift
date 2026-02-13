@@ -293,7 +293,14 @@ final class AppState {
     }
 
     func activityTextForSession(_ sessionID: String) -> String {
-        bestSessionActivityText(sessionID: sessionID) ?? "Thinking"
+        ActivityTracker.bestSessionActivityText(
+            sessionID: sessionID,
+            currentSessionID: currentSessionID,
+            sessionStatuses: sessionStatuses,
+            messages: messages,
+            streamingReasoningPart: streamingReasoningPart,
+            streamingPartTexts: streamingPartTexts
+        )
     }
     
     /// Unified error handling
@@ -1047,44 +1054,14 @@ final class AppState {
     }
 
     private func updateSessionActivity(sessionID: String, previous: SessionStatus?, current: SessionStatus) {
-        let wasBusy = isBusySession(previous)
-        let nowBusy = isBusySession(current)
-
-        let message = current.message?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let opText = (message?.isEmpty == false)
-            ? message!
-            : (current.type == "retry" ? "Retrying" : "Thinking")
-
-        if nowBusy {
-            if !wasBusy || sessionActivities[sessionID]?.state != .running {
-                // While running, always render as the last row in the transcript.
-                let derivedStart = lastUserMessageCreatedAt(sessionID: sessionID) ?? Date()
-                sessionActivities[sessionID] = SessionActivity(
-                    sessionID: sessionID,
-                    state: .running,
-                    text: opText,
-                    startedAt: derivedStart,
-                    endedAt: nil,
-                    anchorMessageID: nil
-                )
-            } else if var a = sessionActivities[sessionID] {
-                // Still running; update text but keep start time.
-                a.text = opText
-                a.anchorMessageID = nil
-                sessionActivities[sessionID] = a
-            }
-            return
-        }
-
-        // Completed: freeze in-place (anchor to the last message at completion).
-        if wasBusy, var a = sessionActivities[sessionID] {
-            a.state = .completed
-            a.endedAt = lastAssistantMessageCompletedAt(sessionID: sessionID) ?? Date()
-            if sessionID == currentSessionID {
-                a.anchorMessageID = messages.last?.info.id
-            }
-            sessionActivities[sessionID] = a
-        }
+        sessionActivities[sessionID] = ActivityTracker.updateSessionActivity(
+            sessionID: sessionID,
+            previous: previous,
+            current: current,
+            existing: sessionActivities[sessionID],
+            messages: messages,
+            currentSessionID: currentSessionID
+        )
     }
 
     private func mergePolledSessionStatuses(_ statuses: [String: SessionStatus]) {
@@ -1103,30 +1080,17 @@ final class AppState {
         }
     }
 
-    private func lastUserMessageCreatedAt(sessionID: String) -> Date? {
-        for msg in messages.reversed() {
-            if msg.info.sessionID != sessionID { continue }
-            if msg.info.isUser {
-                return Date(timeIntervalSince1970: Double(msg.info.time.created) / 1000.0)
-            }
-        }
-        return nil
-    }
-
-    private func lastAssistantMessageCompletedAt(sessionID: String) -> Date? {
-        for msg in messages.reversed() {
-            if msg.info.sessionID != sessionID { continue }
-            if msg.info.isAssistant, let completed = msg.info.time.completed {
-                return Date(timeIntervalSince1970: Double(completed) / 1000.0)
-            }
-        }
-        return nil
-    }
-
     private func refreshSessionActivityText(sessionID: String) {
         guard isBusySession(sessionStatuses[sessionID]) else { return }
         guard sessionActivities[sessionID]?.state == .running else { return }
-        guard let next = bestSessionActivityText(sessionID: sessionID) else { return }
+        let next = ActivityTracker.bestSessionActivityText(
+            sessionID: sessionID,
+            currentSessionID: currentSessionID,
+            sessionStatuses: sessionStatuses,
+            messages: messages,
+            streamingReasoningPart: streamingReasoningPart,
+            streamingPartTexts: streamingPartTexts
+        )
         setSessionActivityText(sessionID: sessionID, next)
     }
 
@@ -1137,9 +1101,8 @@ final class AppState {
         if a.text == trimmed { return }
 
         let now = Date()
-        let last = activityTextLastChangeAt[sessionID] ?? .distantPast
-        let delta = now.timeIntervalSince(last)
-        if delta >= 2.5 {
+        let delay = ActivityTracker.debounceDelay(lastChangeAt: activityTextLastChangeAt[sessionID], now: now)
+        if delay == 0 {
             a.text = trimmed
             sessionActivities[sessionID] = a
             activityTextLastChangeAt[sessionID] = now
@@ -1149,128 +1112,21 @@ final class AppState {
         }
 
         activityTextPendingTask[sessionID]?.cancel()
-        let delay = max(0, 2.5 - delta)
         activityTextPendingTask[sessionID] = Task { [weak self] in
             guard let self else { return }
             try? await Task.sleep(for: .seconds(delay))
             guard !Task.isCancelled else { return }
             guard self.isBusySession(self.sessionStatuses[sessionID]) else { return }
-            guard let best = self.bestSessionActivityText(sessionID: sessionID) else { return }
+            let best = ActivityTracker.bestSessionActivityText(
+                sessionID: sessionID,
+                currentSessionID: self.currentSessionID,
+                sessionStatuses: self.sessionStatuses,
+                messages: self.messages,
+                streamingReasoningPart: self.streamingReasoningPart,
+                streamingPartTexts: self.streamingPartTexts
+            )
             self.setSessionActivityText(sessionID: sessionID, best)
         }
-    }
-
-    private func bestSessionActivityText(sessionID: String) -> String? {
-        if let status = sessionStatuses[sessionID],
-           let msg = status.message?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !msg.isEmpty {
-            return msg
-        }
-
-        // Prefer currently running tool.
-        if let part = lastAssistantToolPart(sessionID: sessionID, state: "running") {
-            return formatStatusFromPart(part)
-        }
-
-        // Prefer reasoning (streaming first, then last reasoning in messages).
-        if sessionID == currentSessionID {
-            if let part = streamingReasoningPart,
-               part.sessionID == sessionID {
-                let key = "\(part.messageID):\(part.id)"
-                let text = streamingPartTexts[key] ?? ""
-                return formatThinkingFromReasoningText(text)
-            }
-        }
-
-        if let part = lastAssistantPart(sessionID: sessionID) {
-            if part.isReasoning {
-                return formatThinkingFromReasoningText(part.text ?? "")
-            }
-            return formatStatusFromPart(part)
-        }
-
-        return "Thinking"
-    }
-
-    private func lastAssistantPart(sessionID: String) -> Part? {
-        for msg in messages.reversed() where msg.info.sessionID == sessionID {
-            guard msg.info.isAssistant else { continue }
-            for part in msg.parts.reversed() {
-                if part.isStepStart || part.isStepFinish { continue }
-                return part
-            }
-        }
-        return nil
-    }
-
-    private func lastAssistantToolPart(sessionID: String, state: String) -> Part? {
-        for msg in messages.reversed() where msg.info.sessionID == sessionID {
-            guard msg.info.isAssistant else { continue }
-            for part in msg.parts.reversed() {
-                guard part.isTool else { continue }
-                if part.stateDisplay?.lowercased() == state { return part }
-            }
-        }
-        return nil
-    }
-
-    private func formatThinkingFromReasoningText(_ text: String) -> String {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let topic = extractLeadingBoldTopic(from: trimmed) {
-            return "Thinking - \(topic)"
-        }
-        return "Thinking"
-    }
-
-    private func extractLeadingBoldTopic(from text: String) -> String? {
-        // Matches: **topic** at the start (after optional whitespace)
-        let pattern = "^\\s*\\*\\*(.+?)\\*\\*"
-        guard let re = try? NSRegularExpression(pattern: pattern) else { return nil }
-        let range = NSRange(location: 0, length: (text as NSString).length)
-        guard let m = re.firstMatch(in: text, range: range), m.numberOfRanges >= 2 else { return nil }
-        let topic = (text as NSString).substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
-        return topic.isEmpty ? nil : topic
-    }
-
-    private func formatStatusFromPart(_ part: Part) -> String? {
-        if part.isTool {
-            let base: String? = {
-                switch part.tool {
-                case "task":
-                    return "Delegating"
-                case "todowrite", "todoread":
-                    return "Planning"
-                case "read":
-                    return "Gathering context"
-                case "list", "grep", "glob":
-                    return "Searching codebase"
-                case "webfetch":
-                    return "Searching web"
-                case "edit", "write":
-                    return "Making edits"
-                case "bash":
-                    return "Running commands"
-                default:
-                    return nil
-                }
-            }()
-
-            let topic = (part.toolReason ?? part.toolInputSummary)?.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let base, let topic, !topic.isEmpty {
-                return "\(base) - \(topic)"
-            }
-            return base
-        }
-
-        if part.isReasoning {
-            return formatThinkingFromReasoningText(part.text ?? "")
-        }
-
-        if part.isText {
-            return "Gathering thoughts"
-        }
-
-        return nil
     }
 
     private func upsertStreamingMessage(
