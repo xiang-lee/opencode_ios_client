@@ -48,6 +48,7 @@ extension AppState {
 struct ContextUsageButton: View {
     @Bindable var state: AppState
     @State private var showSheet = false
+    @State private var isLoadingProviderConfig = false
 
     private var snapshot: ContextUsageSnapshot? { state.contextUsageSnapshot }
 
@@ -66,6 +67,13 @@ struct ContextUsageButton: View {
 
     var body: some View {
         Button {
+            if state.providerModelsIndex.isEmpty, state.isConnected {
+                isLoadingProviderConfig = true
+                Task {
+                    await state.loadProvidersConfig()
+                    await MainActor.run { isLoadingProviderConfig = false }
+                }
+            }
             showSheet = true
         } label: {
             ZStack {
@@ -85,7 +93,12 @@ struct ContextUsageButton: View {
         .help("Context usage")
         .sheet(isPresented: $showSheet) {
             NavigationStack {
-                ContextUsageDetailView(snapshot: snapshot, hasProviderConfig: !state.providerModelsIndex.isEmpty)
+                ContextUsageDetailView(
+                    snapshot: snapshot,
+                    hasProviderConfig: !state.providerModelsIndex.isEmpty,
+                    isLoadingProviderConfig: isLoadingProviderConfig,
+                    providerConfigError: state.providerConfigError
+                )
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("关闭") { showSheet = false }
@@ -100,6 +113,8 @@ struct ContextUsageButton: View {
 private struct ContextUsageDetailView: View {
     let snapshot: ContextUsageSnapshot?
     let hasProviderConfig: Bool
+    let isLoadingProviderConfig: Bool
+    let providerConfigError: String?
 
     var body: some View {
         List {
@@ -134,8 +149,18 @@ private struct ContextUsageDetailView: View {
                 }
             } else {
                 Section {
-                    Text(hasProviderConfig ? "No usage data" : "Provider config not loaded")
-                        .foregroundStyle(.secondary)
+                    if isLoadingProviderConfig {
+                        Text("Loading provider config...")
+                            .foregroundStyle(.secondary)
+                    } else if let err = providerConfigError, !err.isEmpty {
+                        Text(err)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .textSelection(.enabled)
+                    } else {
+                        Text(hasProviderConfig ? "No usage data" : "Provider config not loaded")
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }

@@ -360,23 +360,124 @@ struct FileDiff: Codable, Identifiable, Hashable {
     static func == (lhs: FileDiff, rhs: FileDiff) -> Bool { lhs.file == rhs.file }
 }
 
-/// OpenCode GET /config/providers 返回 providers 为 array，每个元素含 id, name, models: { modelID: ModelInfo }
-struct ProvidersResponse: Codable {
-    let providers: [ConfigProvider]?
+/// OpenCode GET /config/providers
+///
+/// Server responses vary across versions:
+/// - `providers` may be an array (`[{id, name, models}]`) or a dictionary (`{ providerID: ProviderInfo }`)
+/// - `models` may be a dictionary (`{ modelID: ModelInfo }`) or an array (`[{id, ...}]`)
+/// - `ProviderModel.id` / `ConfigProvider.id` may be missing when encoded as dictionary values
+struct ProvidersResponse: Decodable {
+    let providers: [ConfigProvider]
     let `default`: DefaultProvider?
+
+    private enum CodingKeys: String, CodingKey {
+        case providers
+        case `default`
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        `default` = try? c.decode(DefaultProvider.self, forKey: .default)
+
+        if let arr = try? c.decode([ConfigProvider].self, forKey: .providers) {
+            providers = arr
+            return
+        }
+
+        if let dict = try? c.decode([String: ConfigProvider].self, forKey: .providers) {
+            providers = dict
+                .map { (key, value) in
+                    if !value.id.isEmpty { return value }
+                    return ConfigProvider(id: key, name: value.name, models: value.models)
+                }
+                .sorted { $0.id < $1.id }
+            return
+        }
+
+        providers = []
+    }
 }
 
-struct ConfigProvider: Codable {
+struct ConfigProvider: Decodable {
     let id: String
     let name: String?
-    let models: [String: ProviderModel]?
+    let models: [String: ProviderModel]
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case models
+    }
+
+    init(id: String, name: String?, models: [String: ProviderModel]) {
+        self.id = id
+        self.name = name
+        self.models = models
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = (try? c.decode(String.self, forKey: .id)) ?? ""
+        name = try? c.decode(String.self, forKey: .name)
+
+        if let dict = try? c.decode([String: ProviderModel].self, forKey: .models) {
+            var fixed: [String: ProviderModel] = [:]
+            fixed.reserveCapacity(dict.count)
+            for (key, value) in dict {
+                if value.id.isEmpty {
+                    fixed[key] = ProviderModel(id: key, name: value.name, providerID: value.providerID, limit: value.limit)
+                } else {
+                    fixed[key] = value
+                }
+            }
+            models = fixed
+            return
+        }
+
+        if let arr = try? c.decode([ProviderModel].self, forKey: .models) {
+            var fixed: [String: ProviderModel] = [:]
+            fixed.reserveCapacity(arr.count)
+            for m in arr {
+                let key = m.id
+                if key.isEmpty { continue }
+                fixed[key] = m
+            }
+            models = fixed
+            return
+        }
+
+        models = [:]
+    }
 }
 
-struct ProviderModel: Codable {
+struct ProviderModel: Decodable {
     let id: String
     let name: String?
     let providerID: String?
     let limit: ProviderModelLimit?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case providerID
+        case providerId
+        case limit
+    }
+
+    init(id: String, name: String?, providerID: String?, limit: ProviderModelLimit?) {
+        self.id = id
+        self.name = name
+        self.providerID = providerID
+        self.limit = limit
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = (try? c.decode(String.self, forKey: .id)) ?? ""
+        name = try? c.decode(String.self, forKey: .name)
+        providerID = (try? c.decode(String.self, forKey: .providerID)) ?? (try? c.decode(String.self, forKey: .providerId))
+        limit = try? c.decode(ProviderModelLimit.self, forKey: .limit)
+    }
 }
 
 struct ProviderModelLimit: Codable {

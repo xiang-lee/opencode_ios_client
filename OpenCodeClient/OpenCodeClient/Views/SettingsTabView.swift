@@ -56,7 +56,7 @@ struct SettingsTabView: View {
                     }
 
                     Button("Test Connection") {
-                        Task { await state.testConnection() }
+                        Task { await state.refresh() }
                     }
                     .buttonStyle(.plain)
                 }

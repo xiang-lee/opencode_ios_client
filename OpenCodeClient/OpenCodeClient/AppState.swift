@@ -241,6 +241,7 @@ final class AppState {
     // Provider config cache (for context usage ring)
     var providersResponse: ProvidersResponse? = nil
     var providerModelsIndex: [String: ProviderModel] = [:]
+    var providerConfigError: String? = nil
 
     private let apiClient = APIClient()
     private let sseClient = SSEClient()
@@ -916,16 +917,17 @@ final class AppState {
         do {
             let resp = try await apiClient.providers()
             providersResponse = resp
+            providerConfigError = nil
             var idx: [String: ProviderModel] = [:]
-            for p in resp.providers ?? [] {
-                for (modelID, m) in p.models ?? [:] {
+            for p in resp.providers {
+                for (modelID, m) in p.models {
                     let key = "\(p.id)/\(modelID)"
                     idx[key] = m
                 }
             }
             providerModelsIndex = idx
         } catch {
-            // Optional feature; ignore provider config errors.
+            providerConfigError = error.localizedDescription
         }
     }
 }
