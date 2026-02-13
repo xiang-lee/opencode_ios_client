@@ -164,6 +164,15 @@ final class SSHTunnelManager: ObservableObject {
         guard let data = try? JSONEncoder().encode(config) else { return }
         UserDefaults.standard.set(data, forKey: "sshTunnelConfig")
     }
+
+    var reverseTunnelCommand: String? {
+        let host = config.host.trimmingCharacters(in: .whitespacesAndNewlines)
+        let username = config.username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !host.isEmpty, !username.isEmpty, config.remotePort > 0, config.port > 0 else { return nil }
+
+        let portArg = config.port == 22 ? "" : " -p \(config.port)"
+        return "ssh -N -T -R 127.0.0.1:\(config.remotePort):127.0.0.1:4096\(portArg) \(username)@\(host)"
+    }
     
     func connect() async {
         if let err = config.validationError {

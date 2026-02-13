@@ -11,6 +11,7 @@ struct SettingsTabView: View {
     @State private var showPublicKeySheet = false
     @State private var showRotateKeyAlert = false
     @State private var copiedPublicKey = false
+    @State private var copiedTunnelCommand = false
     @State private var publicKeyForSheet = ""
     @State private var sshConfig: SSHTunnelConfig = .default
 
@@ -77,6 +78,10 @@ struct SettingsTabView: View {
                                 state.sshTunnelManager.disconnect()
                             }
                         }
+
+                    Text("After enabling SSH Tunnel, tap Test Connection in Server Connection above.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
 
                     if sshConfig.isEnabled {
                         TextField("VPS Host", text: $sshConfig.host)
@@ -162,7 +167,23 @@ struct SettingsTabView: View {
 
                     }
 
-                    Button("View / Copy Public Key") {
+                    Button {
+                        do {
+                            let key = try state.sshTunnelManager.generateOrGetPublicKey()
+                            UIPasteboard.general.string = key
+                            copiedPublicKey = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                copiedPublicKey = false
+                            }
+                        } catch {
+                            copiedPublicKey = false
+                        }
+                    } label: {
+                        Label(copiedPublicKey ? "Public Key Copied" : "Copy Public Key", systemImage: copiedPublicKey ? "checkmark" : "doc.on.doc")
+                    }
+                    .buttonStyle(.plain)
+
+                    Button("View Public Key") {
                         do {
                             publicKeyForSheet = try state.sshTunnelManager.generateOrGetPublicKey()
                             showPublicKeySheet = true
@@ -172,10 +193,35 @@ struct SettingsTabView: View {
                         }
                     }
                     .buttonStyle(.plain)
+
+                    if let command = state.sshTunnelManager.reverseTunnelCommand {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Reverse Tunnel Command")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(command)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                            Button {
+                                UIPasteboard.general.string = command
+                                copiedTunnelCommand = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    copiedTunnelCommand = false
+                                }
+                            } label: {
+                                Label(copiedTunnelCommand ? "Command Copied" : "Copy Command", systemImage: copiedTunnelCommand ? "checkmark" : "terminal")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } else {
+                        Text("Fill VPS Host, SSH Port, Username, and VPS Port to generate the reverse tunnel command.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 } header: {
                     Text("SSH Tunnel")
                 } footer: {
-                    Text("Forwards iOS 127.0.0.1:4096 to VPS 127.0.0.1:<VPS Port>. 1) View/copy your public key and add it to the VPS's ~/.ssh/authorized_keys. 2) First connect uses TOFU to trust host key; later connections must match. 3) Set Server Address to 127.0.0.1:4096.")
+                    Text("Forwards iOS 127.0.0.1:4096 to VPS 127.0.0.1:<VPS Port>. 1) Copy public key and add it to VPS ~/.ssh/authorized_keys. 2) Run the generated reverse tunnel command on your computer. 3) First connect uses TOFU to trust host key; later connections must match. 4) Set Server Address to 127.0.0.1:4096 and tap Test Connection above.")
                         .font(.caption)
                 }
 
