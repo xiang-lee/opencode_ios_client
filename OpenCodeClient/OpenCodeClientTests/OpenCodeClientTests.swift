@@ -14,7 +14,7 @@ import Testing
 struct OpenCodeClientTests {
 
     @Test func defaultServerAddress() {
-        #expect(APIClient.defaultServer == "192.168.180.128:4096")
+        #expect(APIClient.defaultServer == "127.0.0.1:4096")
     }
 
     @Test func sessionDecoding() throws {
@@ -454,6 +454,12 @@ struct PathNormalizerTests {
 
     @Test func leavesPlainPathUnchanged() {
         #expect(PathNormalizer.normalize("src/main.swift") == "src/main.swift")
+    }
+
+    @Test func stripsDotDotSegments() {
+        #expect(PathNormalizer.normalize("../secrets.txt") == "secrets.txt")
+        #expect(PathNormalizer.normalize("src/../app.swift") == "src/app.swift")
+        #expect(PathNormalizer.normalize("a/../b/./c.txt") == "b/c.txt")
     }
 
     @Test func resolvesWorkspaceRelativeFromAbsolutePath() {
