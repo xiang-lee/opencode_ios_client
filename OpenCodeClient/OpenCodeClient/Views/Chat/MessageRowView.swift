@@ -93,7 +93,7 @@ struct MessageRowView: View {
             .background(Color.accentColor.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 14))
 
-            if let model = message.info.model {
+            if let model = message.info.resolvedModel {
                 Text("\(model.providerID)/\(model.modelID)")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)

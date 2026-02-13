@@ -94,7 +94,7 @@ iPhone 采用底部 Tab Bar，三个 Tab：
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ [新建] [重命名] [Session 列表]     [GPT] [Opus] [GLM] [⚙]   │  ← 第一行：Session 操作 + 模型 + Settings 按钮
+│ [新建] [重命名] [Session 列表]     [GPT] [Opus] [GLM] [◔] [⚙] │  ← 第一行：Session 操作 + 模型 + Context 使用量 + Settings
 ├──────────────────────────┬──────────────────────────────────┤
 │                          │                                  │
 │     📁 Files Preview     │          💬 Chat                 │
@@ -121,6 +121,23 @@ iPhone 采用底部 Tab Bar，三个 Tab：
 位于 Chat 页面顶部，横向滚动的 chip 列表。每个 chip 代表一个预设模型（在 Settings 中配置），格式如 "Claude Opus" / "Gemini 2.5 Pro" / "GPT-4.1"。点击切换，下一条消息将使用选中的模型。当前选中的 chip 高亮显示。
 
 技术实现：切换模型不需要调用 API，只是改变本地状态。发送消息时在 `POST /session/:id/message` 的 body 中携带 `model: { providerID, modelID }` 字段。OpenCode 的设计本身就支持 per-message 的模型指定。
+
+#### 4.2.1.1 Context Usage（上下文占用）指示器
+
+在 Chat 顶部右侧（模型切换条与齿轮之间）显示一个**环形进度**，表示当前 session 最近一次生成时的上下文窗口占用情况。
+
+- **数据来源**：`GET /session/:id/message` 返回的 assistant message `info.tokens.total`（以及 input/output/reasoning/cache），并结合 `GET /config/providers` 中该 `providerID/modelID` 的 `limit.context`。
+- **无数据时**：显示灰色空环（不显示数值），点击可打开详情但内容显示 "No usage data"。
+- **颜色策略**：< 70% 正常色；70-90% 警告色；> 90% 危险色（避免用户在 iOS 端“盲发”导致 token 超限）。
+- **点击交互**：点击环形进度弹出一个 sheet（iPhone/iPad 都可用），展示：
+  - Session（title/id，可复制）
+  - provider/model
+  - context limit
+  - total tokens + usage %
+  - input/output/reasoning/cache read/cache write
+  - total cost（如 server 返回 message cost；若缺失则隐藏）
+
+注：初期不展示 raw messages；context breakdown（system/user/assistant/tool 占比）仅在 server 暴露对应数据或可稳定推导时再做。
 
 #### 4.2.2 消息流
 
@@ -225,7 +242,7 @@ Diff 渲染采用 unified diff 格式（类似 GitHub），绿色背景表示新
 
 #### 4.4.2 Model Presets
 
-**当前实现**：固定 3 个预设（GPT-5.2、Opus 4.6、GLM5），无导入、无排序。发送消息时在 body 中携带 `model: { providerID, modelID }`。
+**当前实现**：固定 4 个预设（GPT-5.2、GPT-5.3 Codex Spark、Opus 4.6、GLM5），无导入、无排序。发送消息时在 body 中携带 `model: { providerID, modelID }`。
 
 #### 4.4.3 Workspace
 

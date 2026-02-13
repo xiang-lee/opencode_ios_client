@@ -280,6 +280,13 @@ struct ProviderModel: Codable {
     let id: String
     let name: String?
     let providerID: String?
+    let limit: ProviderModelLimit?
+}
+
+struct ProviderModelLimit: Codable {
+    let context: Int?
+    let input: Int?
+    let output: Int?
 }
 
 struct DefaultProvider: Codable {

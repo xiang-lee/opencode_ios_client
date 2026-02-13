@@ -126,6 +126,7 @@ struct ChatTabView: View {
                             }
                             .buttonStyle(.plain)
                         }
+                        ContextUsageButton(state: state)
                         if showSettingsInToolbar, let onSettingsTap {
                             Button {
                                 onSettingsTap()

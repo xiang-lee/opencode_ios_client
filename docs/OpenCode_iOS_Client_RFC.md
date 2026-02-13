@@ -184,15 +184,21 @@ final class AppState {
 
 - **文件树**：`GET /file?path=` 递归展示；`GET /file/status` 获取 git 状态做颜色标记
 - **内容**：`GET /file/content?path=`；文本文件语法高亮，二进制显示类型提示
-- **Session Diff**：`GET /session/:id/diff` 获取变更列表，点击进入 unified diff 视图
+- **Session Diff**：暂不在 iOS 客户端展示（server 端 diff API 在部分情况下返回空数组）
 
 ### 8. iPad / Vision Pro 布局（Phase 3）
 
 - **条件**：`horizontalSizeClass == .regular` 或 `userInterfaceIdiom == .pad` 时启用
 - **布局**：无 Tab Bar；左右分栏（NavigationSplitView）：左栏 Files（文件树），右栏 Chat（消息流 + 输入框）
 - **文件预览**：左栏窄，不宜内联预览。在 Files 中点击文件时，**弹出 sheet 预览**（与 Chat 中点击 tool 路径一致）；sheet 使用 `.presentationDetents([.large])` 占大半屏
-- **Toolbar**：第一行统一：左（新建 Session、重命名、Session 列表）+ 右（模型切换、**Settings 按钮**）；Settings 点击以 sheet 打开
+- **Toolbar**：第一行统一：左（新建 Session、重命名、Session 列表）+ 右（模型切换、Context Usage ring、**Settings 按钮**）；Settings 点击以 sheet 打开
 - **实现**：`@Environment(\.horizontalSizeClass)` 分支，大屏时渲染 `SplitView`，小屏时渲染 `TabView`；`FileTreeView` 在 regular 时用 `fileToOpenInFilesTab` 触发 sheet，compact 时用 `NavigationLink` 在 Tab 内 push
+
+### 9. Context Usage（上下文占用）
+
+- **展示**：Chat 顶部右侧（模型切换条与齿轮之间）显示环形进度（灰色空环表示无数据）。
+- **数据**：从最近一次 assistant message 的 `info.tokens`/`info.cost` 读取 token/cost；context limit 从 `GET /config/providers` 中 `limit.context` 获取。
+- **交互**：点击 ring 弹 sheet 展示 provider/model、context limit、total tokens、token breakdown（input/output/reasoning/cache read/cache write）与 total cost。
 
 ---
 

@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import CryptoKit
 import Observation
 import os
 
@@ -125,6 +126,8 @@ final class AppState {
     private static let passwordKeychainKey = "password"
     private static let aiBuilderBaseURLKey = "aiBuilderBaseURL"
     private static let aiBuilderTokenKeychainKey = "aiBuilderToken"
+    private static let aiBuilderLastOKSignatureKey = "aiBuilderLastOKSignature"
+    private static let aiBuilderLastOKTestedAtKey = "aiBuilderLastOKTestedAt"
 
     init() {
         _serverURL = UserDefaults.standard.string(forKey: Self.serverURLKey) ?? APIClient.defaultServer
@@ -133,6 +136,25 @@ final class AppState {
 
         _aiBuilderBaseURL = UserDefaults.standard.string(forKey: Self.aiBuilderBaseURLKey) ?? "https://space.ai-builders.com/backend"
         _aiBuilderToken = KeychainHelper.load(forKey: Self.aiBuilderTokenKeychainKey) ?? ""
+
+        // Restore last known-good AI Builder connection state if token/baseURL unchanged.
+        let storedSig = UserDefaults.standard.string(forKey: Self.aiBuilderLastOKSignatureKey)
+        let currentSig = Self.aiBuilderSignature(baseURL: _aiBuilderBaseURL, token: _aiBuilderToken)
+        if let storedSig, storedSig == currentSig, !currentSig.isEmpty {
+            aiBuilderConnectionOK = true
+            if let ts = UserDefaults.standard.object(forKey: Self.aiBuilderLastOKTestedAtKey) as? Double {
+                aiBuilderLastTestedAt = Date(timeIntervalSince1970: ts)
+            }
+        }
+    }
+
+    private static func aiBuilderSignature(baseURL: String, token: String) -> String {
+        let base = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tok = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !base.isEmpty, !tok.isEmpty else { return "" }
+        let input = "\(base)|\(tok)"
+        let digest = SHA256.hash(data: Data(input.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 
     private var _aiBuilderBaseURL: String = "https://space.ai-builders.com/backend"
@@ -144,6 +166,8 @@ final class AppState {
             aiBuilderConnectionOK = false
             aiBuilderConnectionError = nil
             aiBuilderLastTestedAt = nil
+            UserDefaults.standard.removeObject(forKey: Self.aiBuilderLastOKSignatureKey)
+            UserDefaults.standard.removeObject(forKey: Self.aiBuilderLastOKTestedAtKey)
         }
     }
 
@@ -160,6 +184,8 @@ final class AppState {
             aiBuilderConnectionOK = false
             aiBuilderConnectionError = nil
             aiBuilderLastTestedAt = nil
+            UserDefaults.standard.removeObject(forKey: Self.aiBuilderLastOKSignatureKey)
+            UserDefaults.standard.removeObject(forKey: Self.aiBuilderLastOKTestedAtKey)
         }
     }
     var aiBuilderConnectionError: String? = nil
@@ -211,6 +237,10 @@ final class AppState {
     var fileChildrenCache: [String: [FileNode]] { get { fileStore.fileChildrenCache } set { fileStore.fileChildrenCache = newValue } }
     var fileSearchQuery: String { get { fileStore.fileSearchQuery } set { fileStore.fileSearchQuery = newValue } }
     var fileSearchResults: [String] { get { fileStore.fileSearchResults } set { fileStore.fileSearchResults = newValue } }
+
+    // Provider config cache (for context usage ring)
+    var providersResponse: ProvidersResponse? = nil
+    var providerModelsIndex: [String: ProviderModel] = [:]
 
     private let apiClient = APIClient()
     private let sseClient = SSEClient()
@@ -440,8 +470,15 @@ final class AppState {
             try await AIBuildersAudioClient.testConnection(baseURL: base, token: token)
             aiBuilderConnectionOK = true
             aiBuilderLastTestedAt = Date()
+
+            let sig = Self.aiBuilderSignature(baseURL: base, token: token)
+            UserDefaults.standard.set(sig, forKey: Self.aiBuilderLastOKSignatureKey)
+            UserDefaults.standard.set(aiBuilderLastTestedAt?.timeIntervalSince1970, forKey: Self.aiBuilderLastOKTestedAtKey)
         } catch {
             aiBuilderLastTestedAt = Date()
+            aiBuilderConnectionOK = false
+            UserDefaults.standard.removeObject(forKey: Self.aiBuilderLastOKSignatureKey)
+            UserDefaults.standard.removeObject(forKey: Self.aiBuilderLastOKTestedAtKey)
             switch error {
             case AIBuildersAudioError.missingToken:
                 aiBuilderConnectionError = "Token is empty"
@@ -683,6 +720,7 @@ final class AppState {
     func refresh() async {
         await testConnection()
         if isConnected {
+            await loadProvidersConfig()
             await loadSessions()
             await loadMessages()
             await loadSessionDiff()
@@ -691,6 +729,23 @@ final class AppState {
             await loadFileStatus()
             let statuses = try? await apiClient.sessionStatus()
             if let statuses { sessionStatuses = statuses }
+        }
+    }
+
+    func loadProvidersConfig() async {
+        do {
+            let resp = try await apiClient.providers()
+            providersResponse = resp
+            var idx: [String: ProviderModel] = [:]
+            for p in resp.providers ?? [] {
+                for (modelID, m) in p.models ?? [:] {
+                    let key = "\(p.id)/\(modelID)"
+                    idx[key] = m
+                }
+            }
+            providerModelsIndex = idx
+        } catch {
+            // Optional feature; ignore provider config errors.
         }
     }
 }

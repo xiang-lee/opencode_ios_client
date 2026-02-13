@@ -10,14 +10,32 @@ struct Message: Codable, Identifiable {
     let sessionID: String
     let role: String
     let parentID: String?
+    /// Some servers return providerID/modelID as top-level fields (instead of `model`).
+    let providerID: String?
+    let modelID: String?
     let model: ModelInfo?
     let error: MessageError?
     let time: TimeInfo
     let finish: String?
+    let tokens: TokenInfo?
+    let cost: Double?
 
     struct ModelInfo: Codable {
         let providerID: String
         let modelID: String
+    }
+
+    struct TokenInfo: Codable {
+        let total: Int
+        let input: Int
+        let output: Int
+        let reasoning: Int
+        let cache: CacheInfo?
+
+        struct CacheInfo: Codable {
+            let read: Int
+            let write: Int
+        }
     }
 
     struct TimeInfo: Codable {
@@ -38,6 +56,12 @@ struct Message: Codable, Identifiable {
 
     var isUser: Bool { role == "user" }
     var isAssistant: Bool { role == "assistant" }
+
+    var resolvedModel: ModelInfo? {
+        if let model { return model }
+        if let providerID, let modelID { return ModelInfo(providerID: providerID, modelID: modelID) }
+        return nil
+    }
 
     var errorMessageForDisplay: String? {
         let trimmed = error?.message?.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -56,6 +56,7 @@
 - [x] **Thinking 打字机效果修复**：收到 `message.part.updated`（reasoning）时固定在消息列表底部显示 `StreamingReasoningView`，不再依赖 messages 已有 reasoning part
 - [x] **录音前校验 AI Builder Token**：token 为空 / 正在测试 / 测试未通过时弹窗提示先去 Settings 配置
 - [x] **Test Connection 转圈状态**：Settings AI Builder 连接测试时显示 "Testing..." + ProgressView
+- [x] **AI Builder 测试状态可持久化**：Test Connection 成功后，OK 状态跨 App 重启保持；仅在 token/baseURL 变更时自动失效
 - [x] **发送/录音按钮上下并排**：iPhone/iPad 均改为 VStack 布局，send 在上、mic 在下、abort（如有）在最下
 - [x] **Session 列表按更新时间排序**：使用 `sortedSessions` 按 `time.updated` 降序排列
 - [x] **Session 行时间显示按更新时间**：Session 列表的“xx 分钟前”改为 `time.updated`
@@ -65,6 +66,7 @@
 - [x] **Workspace 左栏等高**：iPad Workspace 左栏 Files/Sessions 两块高度 1:1
 - [x] **iPad Workspace 文件预览用 sheet**：在 Workspace 左侧 File Tree 点文件不再 push 到窄栏，改为全局预览 sheet
 - [x] **todowrite 仅渲染 todo**：Tool 卡片不再显示 todowrite 的 raw JSON input/output，只保留渲染后的 todo 列表
+- [x] **Context usage ring**：Chat 顶部模型与齿轮之间新增上下文占用环，点击弹出 token/cost 明细（无数据时灰色空环）
 
 ## 待办
 
