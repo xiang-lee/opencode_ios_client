@@ -9,6 +9,7 @@ struct PatchPartView: View {
     let part: Part
     @Bindable var state: AppState
     @State private var showOpenFileSheet = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         let fileCount = part.files?.count ?? 0
@@ -61,7 +62,12 @@ struct PatchPartView: View {
         let raw = path.trimmingCharacters(in: .whitespacesAndNewlines)
         let p = PathNormalizer.resolveWorkspaceRelativePath(raw, workspaceDirectory: state.currentSession?.directory)
         guard !p.isEmpty else { return }
-        state.fileToOpenInFilesTab = p
-        state.selectedTab = 1
+        if sizeClass == .regular {
+            state.previewFilePath = p
+            state.fileToOpenInFilesTab = nil
+        } else {
+            state.fileToOpenInFilesTab = p
+            state.selectedTab = 1
+        }
     }
 }

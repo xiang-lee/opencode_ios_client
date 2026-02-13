@@ -23,7 +23,7 @@ struct SplitSidebarView: View {
                 let sessionsHeight = max(minPaneHeight, available - half)
 
                 VStack(spacing: 0) {
-                    FileTreeView(state: state, forceSheetPreview: true)
+                    FileTreeView(state: state, forceSplitPreview: true)
                         .searchable(text: $state.fileSearchQuery, prompt: "Search files")
                         .onSubmit(of: .search) {
                             Task { await state.searchFiles(query: state.fileSearchQuery) }

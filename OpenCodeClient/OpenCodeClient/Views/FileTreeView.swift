@@ -10,12 +10,12 @@ struct FileTreeView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var isLoadingChildren: Set<String> = []
 
-    /// Force file preview to use the global sheet (used by iPad split sidebar).
-    var forceSheetPreview: Bool = false
+    /// Force iPad split behavior (preview in middle column instead of push).
+    var forceSplitPreview: Bool = false
 
-    /// iPad 分栏时左栏窄，点文件应弹 sheet 预览；iPhone 时在 Tab 内 push
-    private var useSheetForFilePreview: Bool {
-        forceSheetPreview || sizeClass == .regular
+    /// iPad 分栏：点击文件更新预览栏；iPhone：在 Files Tab 内 push
+    private var useSplitPreview: Bool {
+        forceSplitPreview || sizeClass == .regular
     }
 
     var body: some View {
@@ -32,9 +32,9 @@ struct FileTreeView: View {
                         Task { await loadAndExpand(item.node.path) }
                     }
                 } else {
-                    if useSheetForFilePreview {
+                    if useSplitPreview {
                         Button {
-                            state.fileToOpenInFilesTab = item.node.path
+                            state.previewFilePath = item.node.path
                         } label: {
                             FileRow(
                                 node: item.node,

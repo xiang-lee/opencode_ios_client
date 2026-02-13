@@ -10,6 +10,7 @@ struct ToolPartView: View {
     @Bindable var state: AppState
     @State private var isExpanded: Bool
     @State private var showOpenFileSheet = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     init(part: Part, state: AppState) {
         self.part = part
@@ -171,7 +172,12 @@ struct ToolPartView: View {
         let raw = path.trimmingCharacters(in: .whitespacesAndNewlines)
         let p = PathNormalizer.resolveWorkspaceRelativePath(raw, workspaceDirectory: state.currentSession?.directory)
         guard !p.isEmpty else { return }
-        state.fileToOpenInFilesTab = p
-        state.selectedTab = 1
+        if sizeClass == .regular {
+            state.previewFilePath = p
+            state.fileToOpenInFilesTab = nil
+        } else {
+            state.fileToOpenInFilesTab = p
+            state.selectedTab = 1
+        }
     }
 }

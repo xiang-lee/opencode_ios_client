@@ -4,6 +4,9 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct ContentView: View {
     @State private var state = AppState()
@@ -13,14 +16,41 @@ struct ContentView: View {
     /// iPad / Vision Pro：左右分栏，无 Tab Bar
     private var useSplitLayout: Bool { sizeClass == .regular }
 
-    var body: some View {
-        Group {
-            if useSplitLayout {
-                splitLayout
-            } else {
-                tabLayout
-            }
+    private var themeColorScheme: ColorScheme? {
+        switch state.themePreference {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
         }
+    }
+
+    private var filePreviewSheetItem: Binding<FilePathWrapper?> {
+        Binding(
+            get: {
+                // 仅在 iPhone / compact 时使用 sheet 预览；iPad 在中间栏内联预览。
+                guard !useSplitLayout else { return nil }
+                return state.fileToOpenInFilesTab.map { FilePathWrapper(path: $0) }
+            },
+            set: { newValue, _ in
+                state.fileToOpenInFilesTab = newValue?.path
+                if newValue == nil, !useSplitLayout {
+                    state.selectedTab = 0
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var rootLayout: some View {
+        if useSplitLayout {
+            splitLayout
+        } else {
+            tabLayout
+        }
+    }
+
+    var body: some View {
+        rootLayout
         .task {
             await state.refresh()
             if state.isConnected {
@@ -38,21 +68,20 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
             state.disconnectSSE()
         }
-        .preferredColorScheme(state.themePreference == "light" ? .light : state.themePreference == "dark" ? .dark : nil)
+        .preferredColorScheme(themeColorScheme)
+        .onChange(of: sizeClass) { _, newValue in
+            // iPhone → iPad 或 split layout 切换时，将 sheet 预览迁移到中间栏预览。
+            if newValue == .regular, let p = state.fileToOpenInFilesTab {
+                state.previewFilePath = p
+                state.fileToOpenInFilesTab = nil
+            }
+        }
         .onChange(of: state.selectedTab) { oldTab, newTab in
             if oldTab == 2 && newTab != 2 {
                 Task { await state.refresh() }
             }
         }
-        .sheet(item: Binding(
-            get: { state.fileToOpenInFilesTab.map { FilePathWrapper(path: $0) } },
-            set: { newValue in
-                state.fileToOpenInFilesTab = newValue?.path
-                if newValue == nil, !useSplitLayout {
-                    state.selectedTab = 0
-                }
-            }
-        )) { wrapper in
+        .sheet(item: filePreviewSheetItem) { wrapper in
             NavigationStack {
                 FileContentView(state: state, filePath: wrapper.path)
                     .toolbar {
@@ -64,7 +93,6 @@ struct ContentView: View {
                         }
                     }
             }
-            .presentationDetents([.large])  // iPad: 预览窗默认大尺寸
         }
         .sheet(isPresented: $showSettingsSheet, onDismiss: {
             Task { await state.refresh() }
@@ -104,15 +132,53 @@ struct ContentView: View {
     private var splitLayout: some View {
         NavigationSplitView {
             SplitSidebarView(state: state)
+        } content: {
+            PreviewColumnView(state: state)
         } detail: {
             ChatTabView(state: state, showSettingsInToolbar: true, onSettingsTap: { showSettingsSheet = true })
         }
+        .navigationSplitViewStyle(.balanced)
     }
 }
 
 private struct FilePathWrapper: Identifiable {
     let path: String
     var id: String { path }
+}
+
+private struct PreviewColumnView: View {
+    @Bindable var state: AppState
+    @State private var reloadToken = UUID()
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let path = state.previewFilePath, !path.isEmpty {
+                    FileContentView(state: state, filePath: path)
+                        .id("\(path)|\(reloadToken.uuidString)")
+                } else {
+                    ContentUnavailableView(
+                        "选择文件预览",
+                        systemImage: "doc.text.magnifyingglass",
+                        description: Text("在左侧 Workspace 选择文件，或在 Chat 的 tool/patch 卡片中点“打开文件”。")
+                    )
+                    .navigationTitle("Preview")
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        reloadToken = UUID()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .disabled((state.previewFilePath ?? "").isEmpty)
+                    .help("刷新预览")
+                }
+            }
+        }
+    }
 }
 
 #Preview {

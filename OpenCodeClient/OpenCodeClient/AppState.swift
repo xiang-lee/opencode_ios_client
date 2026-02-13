@@ -261,6 +261,9 @@ final class AppState {
     var selectedTab: Int = 0  // 0=Chat, 1=Files, 2=Settings
     var fileToOpenInFilesTab: String?  // 从 Chat 中 tool 点击跳转时设置，Files tab 或 sheet 展示
 
+    /// iPad 三栏布局：中间栏文件预览
+    var previewFilePath: String?
+
     var sessionTodos: [String: [TodoItem]] { get { todoStore.sessionTodos } set { todoStore.sessionTodos = newValue } }
 
     var fileTreeRoot: [FileNode] { get { fileStore.fileTreeRoot } set { fileStore.fileTreeRoot = newValue } }

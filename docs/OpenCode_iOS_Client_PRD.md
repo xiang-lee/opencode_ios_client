@@ -90,27 +90,28 @@ iPhone 采用底部 Tab Bar，三个 Tab：
 
 #### 4.1.2 iPad / Vision Pro：Split View（无 Tab）
 
-在 iPad 和 Apple Vision Pro 上，**不显示 Tab Bar**，采用左右分栏布局：
+在 iPad 和 Apple Vision Pro 上，**不显示 Tab Bar**，采用三栏布局（Workspace / Preview / Chat）：
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ [新建] [重命名] [Session 列表]     [GPT] [Opus] [GLM] [◔] [⚙] │  ← 第一行：Session 操作 + 模型 + Context 使用量 + Settings
-├──────────────────────────┬──────────────────────────────────┤
-│                          │                                  │
-│     📁 Files Preview     │          💬 Chat                 │
-│     （左半屏）            │          （右半屏）             │
-│                          │                                  │
-│  文件树                  │  消息流 + 输入框                 │
-│  文件内容 / Markdown 预览  │                                  │
-│                          │                                  │
-└──────────────────────────┴──────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ [新建] [重命名] [Session 列表]        [GPT] [Spark] [Opus] [GLM] [◔] [⚙]                        │  ← 第一行：Session 操作 + 模型 + Context 使用量 + Settings
+├──────────────────────────────┬───────────────────────────────┬───────────────────────────────┤
+│                              │                               │                               │
+│     🧭 Workspace             │         📄 Preview             │           💬 Chat              │
+│     （Files + Sessions）      │         （文件预览）             │           （消息流 + 输入）      │
+│                              │                               │                               │
+│  文件树（上）                 │  文件内容 / Markdown 预览       │  消息流 + 输入框                │
+│  Sessions（下）              │  右上角刷新按钮                 │                               │
+│                              │                               │                               │
+└──────────────────────────────┴───────────────────────────────┴───────────────────────────────┘
 ```
 
 **设计要点**：
-- **左半屏**：Files 预览（文件树、文件内容、Markdown 预览）
-- **右半屏**：Chat（消息流、输入框、与 iPhone 一致）
+- **左栏**：Workspace（文件树 + Sessions 列表）
+- **中栏**：Preview（文件内容、Markdown 预览，可手动刷新）
+- **右栏**：Chat（消息流、输入框、与 iPhone 一致）
 - **Settings**：作为独立按钮加入第一行 toolbar（与 Session 操作、模型切换并列），点击以 sheet 或 navigation push 打开
-- **优势**：大屏上 Chat 与 Files 并排，无需切换 Tab 即可同时查看对话与文件
+- **优势**：大屏上 Chat 与 Preview 并排，文件预览无需弹窗；Workspace 与 Sessions 保持在左侧不干扰阅读
 
 ### 4.2 Chat Tab（主交互界面）
 
@@ -212,7 +213,7 @@ OpenCode 绝大多数情况下不会请求 permission，若出现 `permission.as
 点击文件后进入内容查看页面。数据来源：`GET /file/content?path=...`。
 
 - **iPhone**：在 Files Tab 内 push 到内容页
-- **iPad 分栏**：左栏窄，点击文件后**弹出 sheet 预览**（大尺寸 `.presentationDetents([.large])`），与 Chat 中 tool 点击路径一致
+- **iPad 三栏**：点击文件后在中栏 Preview 内联预览；Chat 中 tool/patch 点击文件同样更新 Preview（不弹 sheet）
 
 文本文件：带语法高亮的代码查看器，显示行号，横向可滚动。字体使用等宽字体（SF Mono 或 Menlo），字号可在 Settings 中调整。
 
@@ -533,7 +534,7 @@ App 进入前台
 | Session Diff | 当前 session 的变更文件列表和 diff 视图 |
 | 单文件 Diff | 文件的 uncommitted changes |
 | **Think Streaming** | delta 增量更新（打字机效果） |
-| **iPad / Vision Pro 布局** | 无 Tab Bar；左右分栏：左 Files 预览、右 Chat；Settings 作为第一行 toolbar 按钮 |
+| **iPad / Vision Pro 布局** | 无 Tab Bar；三栏：左 Workspace（Files+Sessions）、中 Preview、右 Chat；Settings 作为第一行 toolbar 按钮 |
 
 **预估工作量**：2-3 周
 

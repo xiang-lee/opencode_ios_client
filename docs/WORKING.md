@@ -34,7 +34,9 @@
 - [x] Session Todo（task list）：支持 `/session/:id/todo` 拉取 + SSE `todo.updated` 更新；`todowrite` tool 卡片内渲染 todo（方案 B，不做顶部常驻）
 - [x] Phase 3：Think Streaming delta
 - [x] Phase 3：iPad / Vision Pro 布局：`horizontalSizeClass == .regular` 时左右分栏（左 Files、右 Chat），Settings 为 toolbar 按钮
-- [x] iPad 预览优化：sheet 使用 `.presentationDetents([.large])` 大尺寸；Files 中点击文件弹 sheet（左栏窄不宜内联）
+- [x] iPad / Vision Pro 布局升级：三栏（NavigationSplitView）— 左 Workspace（Files+Sessions）/ 中 Preview / 右 Chat
+- [x] iPad 文件预览内联：左侧选择文件或 Chat tool/patch 点击文件时，更新中间 Preview（不再弹 sheet）
+- [x] iPad Preview 刷新按钮：中间栏右上角提供手动刷新（重新加载文件内容）
 - [x] 测试覆盖：SSE 事件结构、session 过滤、PathNormalizer、路径规范化
 - [x] iPad 消息流密度优化：tool/patch/permission 卡片在 iPad 三列网格横向填充；text part 仍整行显示
 - [x] PathNormalizer 加固：percent-encoding 解码、file:// 兼容、最基本的 ../ 防御、绝对路径 → workspace 相对路径解析（修复 tool read 预览空内容类问题）
@@ -68,7 +70,7 @@
 - [x] **服务端错误信息展示**：assistant message 带 `error.data.message` 时在消息中以红色卡片显示
 - [x] **iPad 侧边栏上下分区**：左侧改为上 Files（File Tree）下 Sessions（列表点击切换右侧 Chat Session）
 - [x] **Workspace 左栏等高**：iPad Workspace 左栏 Files/Sessions 两块高度 1:1
-- [x] **iPad Workspace 文件预览用 sheet**：在 Workspace 左侧 File Tree 点文件不再 push 到窄栏，改为全局预览 sheet
+- [x] **iPad Workspace 文件预览内联**：在 Workspace 左侧 File Tree 点文件，更新中间 Preview 栏
 - [x] **todowrite 仅渲染 todo**：Tool 卡片不再显示 todowrite 的 raw JSON input/output，只保留渲染后的 todo 列表
 - [x] **Context usage ring**：Chat 顶部模型与齿轮之间新增上下文占用环，点击弹出 token/cost 明细（无数据时灰色空环）
 - [x] **Context provider config 加载修复**：`GET /config/providers` 解码兼容 array/dict 变体；点击 ring 时若未加载则自动触发加载，并在失败时显示错误信息
@@ -86,7 +88,7 @@
 - [x] **Code Review 1.2**：SSE 调研（API 单行 data 已满足，RFC 规划，加 Accept/Cache-Control 头）
 - [x] **Code Review 1.3**：SSE message.updated 按 sessionID 过滤
 - [x] **Code Review 1.4**：PathNormalizer 统一路径规范化（Utils/PathNormalizer.swift）
-- [ ] **Phase 4：iPad / Vision Pro 布局优化**：可考虑（可选）从 Chat 点击文件时在左栏展示而非 sheet（当前 Chat 与 Files 均弹 sheet）
+- [ ] **Phase 4：iPad / Vision Pro 布局优化**：可考虑（可选）Preview 栏支持“固定/关闭当前文件”等更细粒度控制
 
 ## 遇到的问题
 

@@ -190,11 +190,12 @@ final class AppState {
 ### 8. iPad / Vision Pro 布局（Phase 3）
 
 - **条件**：`horizontalSizeClass == .regular` 或 `userInterfaceIdiom == .pad` 时启用
-- **布局**：无 Tab Bar；左右分栏（NavigationSplitView）：左栏 Files（文件树），右栏 Chat（消息流 + 输入框）
-- **文件预览**：左栏窄，不宜内联预览。在 Files 中点击文件时，**弹出 sheet 预览**（与 Chat 中点击 tool 路径一致）；sheet 使用 `.presentationDetents([.large])` 占大半屏
+- **布局**：无 Tab Bar；三栏（NavigationSplitView）：左栏 Workspace（Files + Sessions），中栏 Preview（文件预览），右栏 Chat（消息流 + 输入框）
+- **文件预览**：iPad 上不使用 sheet。左栏选择文件、或 Chat 中点击 tool/patch 的 file path 时，更新中栏 Preview 预览对应文件
+- **刷新**：Preview 中栏右上角提供刷新按钮（重新加载文件内容），用于外部变更后的手动刷新
 - **Toolbar**：第一行统一：左（新建 Session、重命名、Session 列表）+ 右（模型切换、Context Usage ring、**Settings 按钮**）；Settings 点击以 sheet 打开
 - **模型标签**：iPhone 上使用短名（`GPT` / `Spark` / `Opus` / `GLM`）以适配窄宽；iPad 上显示全称
-- **实现**：`@Environment(\.horizontalSizeClass)` 分支，大屏时渲染 `SplitView`，小屏时渲染 `TabView`；`FileTreeView` 在 regular 时用 `fileToOpenInFilesTab` 触发 sheet，compact 时用 `NavigationLink` 在 Tab 内 push
+- **实现**：`@Environment(\.horizontalSizeClass)` 分支：regular 时渲染三栏 split，小屏时渲染 `TabView`；iPad 用 `previewFilePath` 驱动中栏预览，iPhone 保留 `fileToOpenInFilesTab` 走 sheet / tab 跳转
 
 ### 9. Context Usage（上下文占用）
 
