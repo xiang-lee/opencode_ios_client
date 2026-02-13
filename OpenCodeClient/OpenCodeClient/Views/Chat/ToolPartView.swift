@@ -43,7 +43,9 @@ struct ToolPartView: View {
                         TodoListInlineView(todos: todos)
                     }
                 }
-                if let input = part.toolInputSummary ?? part.metadata?.input, !input.isEmpty {
+                if part.tool != "todowrite",
+                   let input = part.toolInputSummary ?? part.metadata?.input,
+                   !input.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Command / Input")
                             .font(.caption2)
@@ -56,7 +58,9 @@ struct ToolPartView: View {
                 if let path = part.metadata?.path {
                     LabeledContent("Path", value: path)
                 }
-                if let output = part.toolOutput, !output.isEmpty {
+                if part.tool != "todowrite",
+                   let output = part.toolOutput,
+                   !output.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Output")
                             .font(.caption2)

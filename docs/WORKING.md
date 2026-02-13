@@ -59,6 +59,8 @@
 - [x] **Session 列表按更新时间排序**：使用 `sortedSessions` 按 `time.updated` 降序排列
 - [x] **切换 Session 空白 bug 修复**：切换时先清空 messages/parts/streaming 状态再加载新 session 数据
 - [x] **服务端错误信息展示**：assistant message 带 `error.data.message` 时在消息中以红色卡片显示
+- [x] **iPad 侧边栏上下分区**：左侧改为上 Files（File Tree）下 Sessions（列表点击切换右侧 Chat Session）
+- [x] **todowrite 仅渲染 todo**：Tool 卡片不再显示 todowrite 的 raw JSON input/output，只保留渲染后的 todo 列表
 
 ## 待办
 

@@ -103,7 +103,7 @@ struct ContentView: View {
     /// iPad / Vision Pro：左右分栏，左 Files 右 Chat，Settings 为 toolbar 按钮
     private var splitLayout: some View {
         NavigationSplitView {
-            FilesTabView(state: state)
+            SplitSidebarView(state: state)
         } detail: {
             ChatTabView(state: state, showSettingsInToolbar: true, onSettingsTap: { showSettingsSheet = true })
         }
