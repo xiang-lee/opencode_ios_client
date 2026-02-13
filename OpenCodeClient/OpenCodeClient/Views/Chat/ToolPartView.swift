@@ -25,7 +25,7 @@ struct ToolPartView: View {
 
     private var toolAccentColor: Color {
         if part.tool == "todowrite" { return .green }
-        return .teal
+        return .accentColor
     }
 
     private var toolBackgroundColor: Color {
@@ -96,10 +96,11 @@ struct ToolPartView: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "wrench.and.screwdriver.fill")
-                    .foregroundStyle(toolAccentColor.opacity(0.85))
+                    .foregroundStyle(toolAccentColor)
                     .font(.caption)
                 Text(toolDisplayName)
                     .fontWeight(.medium)
+                    .foregroundStyle(toolAccentColor)
                 if let reason = part.toolReason ?? part.metadata?.title, !reason.isEmpty {
                     Text("·")
                         .foregroundStyle(.secondary)
