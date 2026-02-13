@@ -31,9 +31,10 @@
 - [x] Chat：AI response 支持文字选择/复制（含 Markdown 渲染）
 - [x] Chat → 文件跳转：改用 URLComponents 编码 query，统一规范化 file path；补充空内容 warning log
 - [x] Tool 卡片：理由/标题收起态最多两行 + 省略号，展开态显示完整 Reason
-- [x] Session Todo（task list）：支持 `/session/:id/todo` 拉取 + SSE `todo.updated` 更新；`todowrite` tool 渲染为 Task List 卡片
+- [x] Session Todo（task list）：支持 `/session/:id/todo` 拉取 + SSE `todo.updated` 更新；`todowrite` tool 卡片内渲染 todo（方案 B，不做顶部常驻）
 - [x] Phase 3：Think Streaming delta（见 [THINK_STREAMING.md](THINK_STREAMING.md)）
 - [x] Phase 3：iPad / Vision Pro 布局：`horizontalSizeClass == .regular` 时左右分栏（左 Files、右 Chat），Settings 为 toolbar 按钮
+- [x] iPad 预览优化：sheet 使用 `.presentationDetents([.large])` 大尺寸；Files 中点击文件弹 sheet（左栏窄不宜内联）
 - [x] 测试覆盖：SSE 事件结构、session 过滤、PathNormalizer、路径规范化
 
 ## 待办
@@ -42,7 +43,7 @@
 - [x] **Code Review 1.2**：SSE 调研（API 单行 data 已满足，RFC 规划，加 Accept/Cache-Control 头）
 - [x] **Code Review 1.3**：SSE message.updated 按 sessionID 过滤
 - [x] **Code Review 1.4**：PathNormalizer 统一路径规范化（Utils/PathNormalizer.swift）
-- [ ] **Phase 4：iPad / Vision Pro 布局优化**：可考虑（可选）从 Chat 点击文件时在左栏展示而非 sheet
+- [ ] **Phase 4：iPad / Vision Pro 布局优化**：可考虑（可选）从 Chat 点击文件时在左栏展示而非 sheet（当前 Chat 与 Files 均弹 sheet）
 
 ## 遇到的问题
 

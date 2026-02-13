@@ -7,7 +7,11 @@ import SwiftUI
 
 struct FileTreeView: View {
     @Bindable var state: AppState
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var isLoadingChildren: Set<String> = []
+
+    /// iPad 分栏时左栏窄，点文件应弹 sheet 预览；iPhone 时在 Tab 内 push
+    private var useSheetForFilePreview: Bool { sizeClass == .regular }
 
     var body: some View {
         List {
@@ -23,11 +27,23 @@ struct FileTreeView: View {
                         Task { await loadAndExpand(item.node.path) }
                     }
                 } else {
-                    NavigationLink(value: item.node.path) {
-                        FileRow(
-                            node: item.node,
-                            indent: item.indent,
-                            status: state.fileStatusMap[item.node.path])
+                    if useSheetForFilePreview {
+                        Button {
+                            state.fileToOpenInFilesTab = item.node.path
+                        } label: {
+                            FileRow(
+                                node: item.node,
+                                indent: item.indent,
+                                status: state.fileStatusMap[item.node.path])
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        NavigationLink(value: item.node.path) {
+                            FileRow(
+                                node: item.node,
+                                indent: item.indent,
+                                status: state.fileStatusMap[item.node.path])
+                        }
                     }
                 }
             }

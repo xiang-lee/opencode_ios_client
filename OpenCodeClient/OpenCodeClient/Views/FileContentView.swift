@@ -62,17 +62,12 @@ struct FileContentView: View {
     private func loadContent() {
         isLoading = true
         loadError = nil
-        print("[FileContentView] loadContent path=\(filePath)")
         Task {
             do {
                 let fc = try await state.loadFileContent(path: filePath)
                 await MainActor.run {
                     content = fc.text ?? fc.content
                     isLoading = false
-                    print("[FileContentView] loaded type=\(fc.type) contentLen=\(content?.count ?? 0)")
-                    if (content ?? "").isEmpty, fc.type == "text" {
-                        print("[FileContentView] warning: empty text content path=\(filePath)")
-                    }
                     if content == nil && fc.type == "binary" {
                         loadError = "Binary file"
                     }
@@ -81,7 +76,6 @@ struct FileContentView: View {
                 await MainActor.run {
                     loadError = error.localizedDescription
                     isLoading = false
-                    print("[FileContentView] load failed: \(error)")
                 }
             }
         }

@@ -98,9 +98,9 @@ Chat 区域使用 `.textSelection(.enabled)` 能解决复制问题，但会改�
 - 保持选择能力，但考虑补一个显式的「Done/收起键盘」入口
 - 对按钮区域（工具卡片的按钮）验证手势冲突，必要时对局部禁用 selection 或增加 hit testing 策略
 
-### 2.3 `ChatTabView.swift` 体积过大，可维护性下降
+### 2.3 `ChatTabView.swift` 体积过大，可维护性下降 ✅ 已拆分
 
-`OpenCodeClient/OpenCodeClient/Views/ChatTabView.swift` 集中定义了大量子 View（消息行、tool 卡片、patch 卡片、权限卡片、todo 卡片）。
+已拆至 `Views/Chat/`：`ChatTabView.swift`、`MessageRowView.swift`、`ToolPartView.swift`、`PatchPartView.swift`、`PermissionCardView.swift`、`StreamingReasoningView.swift`、`TodoListInlineView.swift`。原 `Views/ChatTabView.swift` 集中定义了大量子 View（消息行、tool 卡片、patch 卡片、权限卡片、todo 卡片）。
 
 问题：
 

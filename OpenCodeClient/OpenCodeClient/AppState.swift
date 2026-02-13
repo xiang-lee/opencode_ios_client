@@ -9,9 +9,46 @@ import Observation
 @Observable
 @MainActor
 final class AppState {
-    var serverURL: String = APIClient.defaultServer
-    var username: String = ""
-    var password: String = ""
+    private var _serverURL: String = APIClient.defaultServer
+    var serverURL: String {
+        get { _serverURL }
+        set {
+            _serverURL = newValue
+            UserDefaults.standard.set(newValue, forKey: Self.serverURLKey)
+        }
+    }
+
+    private var _username: String = ""
+    var username: String {
+        get { _username }
+        set {
+            _username = newValue
+            UserDefaults.standard.set(newValue, forKey: Self.usernameKey)
+        }
+    }
+
+    private var _password: String = ""
+    var password: String {
+        get { _password }
+        set {
+            _password = newValue
+            if newValue.isEmpty {
+                KeychainHelper.delete(Self.passwordKeychainKey)
+            } else {
+                KeychainHelper.save(newValue, forKey: Self.passwordKeychainKey)
+            }
+        }
+    }
+
+    private static let serverURLKey = "serverURL"
+    private static let usernameKey = "username"
+    private static let passwordKeychainKey = "password"
+
+    init() {
+        _serverURL = UserDefaults.standard.string(forKey: Self.serverURLKey) ?? APIClient.defaultServer
+        _username = UserDefaults.standard.string(forKey: Self.usernameKey) ?? ""
+        _password = KeychainHelper.load(forKey: Self.passwordKeychainKey) ?? ""
+    }
     var isConnected: Bool = false
     var serverVersion: String?
     var connectionError: String?

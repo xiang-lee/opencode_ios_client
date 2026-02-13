@@ -53,10 +53,10 @@
 ├─────────────────────────────────────────────────────────────────┤
 │  Views                 │  State                   │  Services     │
 │  ─────────             │  ─────────               │  ─────────    │
-│  ChatTab               │  AppState (@Observable)   │  APIClient    │
-│  FilesTab              │  SessionState             │  SSEClient    │
-│  SettingsTab           │  MessageState            │  AuthService  │
-│  MessageRow, DiffView  │  ConnectionState         │               │
+│  ChatTab (Views/Chat/) │  AppState (@Observable)   │  APIClient    │
+│  FilesTab              │  SessionStore, etc.      │  SSEClient    │
+│  SettingsTab           │  (单一 AppState 持有)     │               │
+│  MessageRow, DiffView  │                          │               │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               │ URLSession (REST + SSE)
@@ -125,14 +125,14 @@ final class AppState {
     var sessions: [Session]
     var currentSessionID: String?
     var sessionStatuses: [String: SessionStatus]
-    var messages: [Message]
-    var parts: [String: [Part]]
+    var messages: [MessageWithParts]
+    var partsByMessage: [String: [Part]]
     var selectedModelIndex: Int
-    // ...
+    // SessionStore, MessageStore, FileStore, TodoStore 等
 }
 ```
 
-- 单一 `AppState` 持有全局状态
+- 单一 `AppState` 持有全局状态，子 store 委托 session/message/file/todo 等
 - SSE 事件根据 `type` 分发，更新对应字段
 - View 通过 `@Environment` 或直接注入访问
 
@@ -141,11 +141,37 @@ final class AppState {
 #### 5.1 消息流
 
 - **布局**：OpenCode 风格，无左右气泡；人类消息灰色背景，AI 消息白/透明
-- **Part 渲染**：text (Markdown)、reasoning (折叠)、tool (卡片)、patch (跳转 Files)。tool/patch 若含文件路径，点击可「在 File Tree 中打开」预览；其中 `todowrite` tool 需渲染为 Task List（todo）视图，并响应 SSE `todo.updated`
+- **Part 渲染**：text (Markdown)、reasoning (折叠)、tool (卡片)、patch (跳转 Files)。tool/patch 若含文件路径，点击可「在 File Tree 中打开」预览；其中 `todowrite` tool 需渲染为 Task List（todo）视图，并响应 SSE `todo.updated`。Todo 仅在 tool 卡片内展示，不在 Chat 顶部常驻（方案 B）
 - **流式（Think Streaming）**：`message.part.updated` 带 `delta` 时追加到对应 Part，实现打字机效果；无 delta 时全量 reload。Tool 卡片：running 展开、completed 默认收起
 - **主题**：跟随 `@Environment(\.colorScheme)`，Light/Dark
 
-#### 5.1.1 Think Streaming 实现
+#### 5.1.1 Chat 文字选择（textSelection）— 设计分析
+
+**现状**：Chat 区域使用 `.textSelection(.enabled)` 支持复制。实现位置：
+- `ScrollView` 整体（ChatTabView）
+- `MessageRowView` 内 Markdown、Text
+- `ToolPartView` 内 Reason、Command/Input、Output 的 Text
+- `StreamingReasoningView`
+- `TodoListInlineView` 内 todo 内容
+
+**「选不动」的可能原因**（待验证）：
+1. **Button 包裹**：`PatchPartView` 整块为 Button，内部「X files changed」无法选择
+2. **LabeledContent**：ToolPartView 的 `LabeledContent("Path", value: path)` 未显式 `.textSelection(.enabled)`，路径可能不可选
+3. **DisclosureGroup**：折叠时内容不可见；展开时 label 区域（tool 名 + 状态）可能被点击手势抢占
+4. **平台差异**：有报告称 iOS 18 下 List 内 textSelection 存在异常，需在真机/模拟器验证
+
+**交互冲突风险**（Code Review 2.2）：
+- 长按选择文字可能干扰按钮点击（tool 卡片、patch 卡片、权限卡片）
+- `scrollDismissesKeyboard(.immediately)` 下，点空白收键盘行为可能不直观
+
+**待决策**：
+- 方案 A：保持现状，补显式「Done/收起键盘」入口，在按钮区域验证手势冲突
+- 方案 B：对按钮区域局部禁用 textSelection（如 `.textSelection(.disabled)` 包裹 Button）
+- 方案 C：仅对纯文本区域启用选择，对 tool/patch 卡片内容单独评估
+
+**建议**：先补齐 `LabeledContent` 的 textSelection，再在真机验证各区域是否可选；根据结果决定是否采纳方案 B/C。
+
+#### 5.1.2 Think Streaming 实现
 
 - **Delta 处理**：`handleSSEEvent` 收到 `message.part.updated` 时，若 `properties.delta` 存在，则定位 `messageID`/`partID` 对应 Part，将 delta 追加到 text；否则执行 `loadMessages()` 全量刷新
 - **Tool 折叠**：`ToolPartView` 根据 `part.state.status`：`running` 时 `isExpanded = true`，`completed` 时 `isExpanded = false`（默认），用户可手动切换
@@ -173,9 +199,10 @@ final class AppState {
 ### 8. iPad / Vision Pro 布局（Phase 3）
 
 - **条件**：`horizontalSizeClass == .regular` 或 `userInterfaceIdiom == .pad` 时启用
-- **布局**：无 Tab Bar；左右分栏（如 `NavigationSplitView` 或 `HStack`）：左栏 Files（文件树 + 内容预览），右栏 Chat（消息流 + 输入框）
+- **布局**：无 Tab Bar；左右分栏（NavigationSplitView）：左栏 Files（文件树 + Session Changes），右栏 Chat（消息流 + 输入框）
+- **文件预览**：左栏窄，不宜内联预览。在 Files 中点击文件时，**弹出 sheet 预览**（与 Chat 中点击 tool 路径一致）；sheet 使用 `.presentationDetents([.large])` 占大半屏
 - **Toolbar**：第一行统一：左（新建 Session、重命名、Session 列表）+ 右（模型切换、**Settings 按钮**）；Settings 点击以 sheet 打开
-- **实现**：`@Environment(\.horizontalSizeClass)` 分支，大屏时渲染 `SplitView`，小屏时渲染 `TabView`
+- **实现**：`@Environment(\.horizontalSizeClass)` 分支，大屏时渲染 `SplitView`，小屏时渲染 `TabView`；`FileTreeView` 在 regular 时用 `fileToOpenInFilesTab` 触发 sheet，compact 时用 `NavigationLink` 在 Tab 内 push
 
 ---
 
@@ -187,6 +214,16 @@ final class AppState {
 | 2 | Part 渲染、权限手动批准、主题、`prompt_async` | 2 周 |
 | 3 | 文件树、Markdown 预览、文档 Diff、Think Streaming delta、**iPad/Vision Pro 分栏布局** | 2–3 周 |
 | 4 | mDNS、Widget 等 | 暂不实现 |
+
+### Code Review 跟进（2026-02）
+
+| 编号 | 状态 | 说明 |
+|------|------|------|
+| 2.1 | ✅ | UserDefaults + Keychain 持久化凭证 |
+| 2.2 | 待决策 | Chat 文字选择 — 见 §5.1.1 分析 |
+| 2.3 | ✅ | ChatTabView 拆分至 Views/Chat/*.swift |
+| 2.4 | ✅ | Todo 方案 B：仅 tool 卡片内展示 |
+| 2.5 | ✅ | 移除 debug print |
 
 ---
 

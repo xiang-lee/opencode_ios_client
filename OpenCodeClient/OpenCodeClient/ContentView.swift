@@ -59,6 +59,7 @@ struct ContentView: View {
                         }
                     }
             }
+            .presentationDetents([.large])  // iPad: 预览窗默认大尺寸
         }
         .sheet(isPresented: $showSettingsSheet) {
             NavigationStack {

@@ -24,11 +24,18 @@ final class OpenCodeClientUITests: XCTestCase {
 
     @MainActor
     func testExample() throws {
-        // UI tests must launch the application that they test.
         let app = XCUIApplication()
         app.launch()
+    }
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+    /// 2.3 ChatTabView baseline: 验证 Chat 页加载后输入框可见（refactor 后用此测试回归）
+    @MainActor
+    func testChatTabShowsInputField() throws {
+        let app = XCUIApplication()
+        app.launch()
+        // Chat 为默认 tab，输入框 placeholder 会作为 accessibility label
+        let askField = app.textFields["Ask anything..."]
+        XCTAssertTrue(askField.waitForExistence(timeout: 8), "Chat 输入框应可见")
     }
 
     @MainActor
