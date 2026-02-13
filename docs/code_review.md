@@ -21,7 +21,11 @@
 - 现状：SSH 连接直接接受任意 host key。
 - 证据：`OpenCodeClient/OpenCodeClient/Services/SSHTunnelManager.swift:130`
 - 风险：首次连接和公网环境中，无法识别中间人攻击。
-- 建议：改为 TOFU（首次确认并持久化 fingerprint）或手动 pin fingerprint。
+- 建议：采用 **TOFU**（Trust On First Use）策略作为默认方案。
+  - 首次连接时：展示服务器 fingerprint，用户确认后写入本地信任存储。
+  - 后续连接时：强制比对 fingerprint；不一致直接阻断并给出明确告警。
+  - 提供「重置信任并重新配对」入口，支持服务器重装/换机。
+  - 文档与 UI 文案统一用“首次信任、后续强校验”的心智模型。
 
 #### 1.2 Basic Auth + HTTP（LAN）默认可用（P2）
 
@@ -36,6 +40,10 @@
 
 - 现状：busy 场景每 2 秒轮询一次，最多 90 次，并每轮调用 `loadMessages()`。
 - 证据：`OpenCodeClient/OpenCodeClient/AppState.swift:834`、`OpenCodeClient/OpenCodeClient/AppState.swift:858`
+- 背景：当前不是“只用轮询”，而是 **SSE + 轮询兜底并存**。
+  - SSE 是主通道；但在移动端切前后台、网络抖动、事件未重放（例如 permission.asked）时，可能漏事件。
+  - 因此引入轮询作为“最终一致性兜底”，保证状态不丢。
+  - 问题不在“有无轮询”，而在“轮询频率偏高 + 拉取粒度偏粗（全量消息）”。
 - 风险：会话长、消息多时，反复全量解码 + UI 重组，容易带来电量与温度压力。
 - 建议：
   - 优先用 SSE 驱动；轮询退化为指数退避（2s/4s/8s）。
