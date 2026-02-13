@@ -23,6 +23,7 @@ struct ChatTabView: View {
     var onSettingsTap: (() -> Void)?
     @State private var inputText = ""
     @State private var isSending = false
+    @State private var isSyncingDraft = false
     @State private var showSessionList = false
     @State private var showRenameAlert = false
     @State private var renameText = ""
@@ -311,7 +312,24 @@ struct ChatTabView: View {
             } message: {
                 Text(speechError ?? "")
             }
+            .onAppear {
+                syncDraftFromState(sessionID: state.currentSessionID)
+            }
+            .onChange(of: state.currentSessionID) { oldID, newID in
+                state.setDraftText(inputText, for: oldID)
+                syncDraftFromState(sessionID: newID)
+            }
+            .onChange(of: inputText) { _, newValue in
+                guard !isSyncingDraft else { return }
+                state.setDraftText(newValue, for: state.currentSessionID)
+            }
         }
+    }
+
+    private func syncDraftFromState(sessionID: String?) {
+        isSyncingDraft = true
+        inputText = state.draftText(for: sessionID)
+        isSyncingDraft = false
     }
 
     private func sendCurrentInput() {

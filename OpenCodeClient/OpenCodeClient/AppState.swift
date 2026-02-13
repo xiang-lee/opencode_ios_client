@@ -128,6 +128,7 @@ final class AppState {
     private static let aiBuilderTokenKeychainKey = "aiBuilderToken"
     private static let aiBuilderLastOKSignatureKey = "aiBuilderLastOKSignature"
     private static let aiBuilderLastOKTestedAtKey = "aiBuilderLastOKTestedAt"
+    private static let draftInputsBySessionKey = "draftInputsBySession"
 
     init() {
         _serverURL = UserDefaults.standard.string(forKey: Self.serverURLKey) ?? APIClient.defaultServer
@@ -145,6 +146,37 @@ final class AppState {
             if let ts = UserDefaults.standard.object(forKey: Self.aiBuilderLastOKTestedAtKey) as? Double {
                 aiBuilderLastTestedAt = Date(timeIntervalSince1970: ts)
             }
+        }
+
+        if let data = UserDefaults.standard.data(forKey: Self.draftInputsBySessionKey),
+           let decoded = try? JSONDecoder().decode([String: String].self, from: data) {
+            draftInputsBySessionID = decoded
+        }
+    }
+
+    // Unsent composer drafts per session.
+    private var draftInputsBySessionID: [String: String] = [:]
+
+    func draftText(for sessionID: String?) -> String {
+        guard let sessionID else { return "" }
+        return draftInputsBySessionID[sessionID] ?? ""
+    }
+
+    func setDraftText(_ text: String, for sessionID: String?) {
+        guard let sessionID else { return }
+        let cleaned = text
+        if cleaned.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            draftInputsBySessionID[sessionID] = nil
+        } else {
+            draftInputsBySessionID[sessionID] = cleaned
+        }
+
+        if draftInputsBySessionID.isEmpty {
+            UserDefaults.standard.removeObject(forKey: Self.draftInputsBySessionKey)
+            return
+        }
+        if let data = try? JSONEncoder().encode(draftInputsBySessionID) {
+            UserDefaults.standard.set(data, forKey: Self.draftInputsBySessionKey)
         }
     }
 
