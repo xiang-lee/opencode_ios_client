@@ -21,7 +21,6 @@ struct TodoListInlineView: View {
                         .foregroundStyle(todo.isCompleted ? .secondary : .primary)
                         .strikethrough(todo.isCompleted)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
                 }
             }
         }

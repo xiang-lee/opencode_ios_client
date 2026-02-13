@@ -455,6 +455,24 @@ struct PathNormalizerTests {
     @Test func leavesPlainPathUnchanged() {
         #expect(PathNormalizer.normalize("src/main.swift") == "src/main.swift")
     }
+
+    @Test func resolvesWorkspaceRelativeFromAbsolutePath() {
+        let dir = "/Users/test/workspace"
+        let abs = "/Users/test/workspace/docs/readme.md#L42"
+        #expect(PathNormalizer.resolveWorkspaceRelativePath(abs, workspaceDirectory: dir) == "docs/readme.md")
+    }
+
+    @Test func resolvesWorkspaceRelativeKeepsRelativePath() {
+        let dir = "/Users/test/workspace"
+        let rel = "docs/readme.md"
+        #expect(PathNormalizer.resolveWorkspaceRelativePath(rel, workspaceDirectory: dir) == "docs/readme.md")
+    }
+
+    @Test func resolvesWorkspaceRelativeDecodesPercentEncoding() {
+        let dir = "/Users/test/workspace"
+        let abs = "/Users/test/workspace/src%2Fapp.swift"
+        #expect(PathNormalizer.resolveWorkspaceRelativePath(abs, workspaceDirectory: dir) == "src/app.swift")
+    }
 }
 
 // MARK: - PartStateBridge Tests

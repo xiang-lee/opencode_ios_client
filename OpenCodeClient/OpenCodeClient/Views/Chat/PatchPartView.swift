@@ -52,7 +52,8 @@ struct PatchPartView: View {
     }
 
     private func openFile(_ path: String) {
-        let p = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        let raw = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        let p = PathNormalizer.resolveWorkspaceRelativePath(raw, workspaceDirectory: state.currentSession?.directory)
         state.fileToOpenInFilesTab = p
         state.selectedTab = 1
     }

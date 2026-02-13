@@ -14,6 +14,13 @@ struct ChatTabView: View {
     @State private var showSessionList = false
     @State private var showRenameAlert = false
     @State private var renameText = ""
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    private var useGridCards: Bool { sizeClass == .regular }
+
+    private var currentPermissions: [PendingPermission] {
+        state.pendingPermissions.filter { $0.sessionID == state.currentSessionID }
+    }
 
     var body: some View {
         NavigationStack {
@@ -85,9 +92,23 @@ struct ChatTabView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 12) {
-                            ForEach(state.pendingPermissions.filter { $0.sessionID == state.currentSessionID }) { perm in
-                                PermissionCardView(permission: perm) { approved in
-                                    Task { await state.respondPermission(perm, approved: approved) }
+                            if useGridCards {
+                                LazyVGrid(
+                                    columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3),
+                                    alignment: .leading,
+                                    spacing: 10
+                                ) {
+                                    ForEach(currentPermissions) { perm in
+                                        PermissionCardView(permission: perm) { approved in
+                                            Task { await state.respondPermission(perm, approved: approved) }
+                                        }
+                                    }
+                                }
+                            } else {
+                                ForEach(currentPermissions) { perm in
+                                    PermissionCardView(permission: perm) { approved in
+                                        Task { await state.respondPermission(perm, approved: approved) }
+                                    }
                                 }
                             }
                         ForEach(state.messages, id: \.info.id) { msg in
@@ -103,7 +124,6 @@ struct ChatTabView: View {
                         .padding()
                     }
                     .scrollDismissesKeyboard(.immediately)
-                    .textSelection(.enabled)
                     .onChange(of: scrollAnchor) { _, _ in
                         withAnimation(.easeOut(duration: 0.2)) {
                             proxy.scrollTo("bottom", anchor: .bottom)

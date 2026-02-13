@@ -9,6 +9,63 @@ import MarkdownUI
 struct MessageRowView: View {
     let message: MessageWithParts
     @Bindable var state: AppState
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    private var useGridCards: Bool { sizeClass == .regular }
+
+    private enum AssistantBlock: Identifiable {
+        case text(Part)
+        case cards([Part])
+
+        var id: String {
+            switch self {
+            case .text(let p):
+                return "text-\(p.id)"
+            case .cards(let parts):
+                let first = parts.first?.id ?? "nil"
+                let last = parts.last?.id ?? "nil"
+                return "cards-\(first)-\(last)"
+            }
+        }
+    }
+
+    private var assistantBlocks: [AssistantBlock] {
+        // Only layout non-reasoning parts here; reasoning streaming is handled separately.
+        let parts = message.parts.filter { !$0.isReasoning }
+
+        var blocks: [AssistantBlock] = []
+        var buffer: [Part] = []
+
+        func flushBuffer() {
+            guard !buffer.isEmpty else { return }
+            blocks.append(.cards(buffer))
+            buffer.removeAll(keepingCapacity: true)
+        }
+
+        for part in parts {
+            if part.isTool || part.isPatch {
+                buffer.append(part)
+                continue
+            }
+
+            // step-start/step-finish are currently rendered as separators elsewhere; keep behavior
+            if part.isStepStart || part.isStepFinish {
+                flushBuffer()
+                continue
+            }
+
+            if part.isText {
+                flushBuffer()
+                blocks.append(.text(part))
+            } else {
+                // Unknown/unsupported types: break card flow to avoid odd grid mixing.
+                flushBuffer()
+            }
+        }
+
+        flushBuffer()
+        return blocks
+    }
 
     @ViewBuilder
     private func markdownText(_ text: String) -> some View {
@@ -55,22 +112,44 @@ struct MessageRowView: View {
 
     private var assistantMessageView: some View {
         VStack(alignment: .leading, spacing: 6) {
-            ForEach(message.parts.filter { !$0.isReasoning }, id: \.id) { part in
-                if part.isText {
+            ForEach(assistantBlocks) { block in
+                switch block {
+                case .text(let part):
                     markdownText(part.text ?? "")
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                } else if part.isTool {
-                    ToolPartView(part: part, state: state)
-                } else if part.isStepStart {
-                    EmptyView()
-                } else if part.isStepFinish {
-                    EmptyView()
-                } else if part.isPatch {
-                    PatchPartView(part: part, state: state)
+                case .cards(let parts):
+                    if useGridCards {
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3),
+                            alignment: .leading,
+                            spacing: 10
+                        ) {
+                            ForEach(parts, id: \.id) { part in
+                                cardView(part)
+                            }
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(parts, id: \.id) { part in
+                                cardView(part)
+                            }
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func cardView(_ part: Part) -> some View {
+        if part.isTool {
+            ToolPartView(part: part, state: state)
+        } else if part.isPatch {
+            PatchPartView(part: part, state: state)
+        } else {
+            EmptyView()
         }
     }
 }

@@ -28,7 +28,6 @@ struct ToolPartView: View {
                         Text(reason)
                             .font(.caption2)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
                     }
                 }
 
@@ -46,7 +45,6 @@ struct ToolPartView: View {
                         Text(input)
                             .font(.system(.caption2, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
                     }
                 }
                 if let path = part.metadata?.path {
@@ -60,7 +58,6 @@ struct ToolPartView: View {
                         Text(output)
                             .font(.system(.caption2, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
                     }
                 }
                 if !part.filePathsForNavigation.isEmpty {
@@ -147,7 +144,8 @@ struct ToolPartView: View {
     }
 
     private func openFile(_ path: String) {
-        let p = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        let raw = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        let p = PathNormalizer.resolveWorkspaceRelativePath(raw, workspaceDirectory: state.currentSession?.directory)
         state.fileToOpenInFilesTab = p
         state.selectedTab = 1
     }
