@@ -61,7 +61,7 @@ iOS App → VPS (SSH) → VPS:18080 → 家里 OpenCode:4096
     - 复制 app 生成的 reverse tunnel command，在电脑端执行
     - Server Address 改为 `127.0.0.1:4096`（通过隧道访问），然后点 `Test Connection`
 
-**注意**：SSH Tunnel 功能需要添加 Citadel 依赖，目前为预览状态。
+**注意**：SSH Tunnel 已集成 Citadel 并可用；当前处于测试阶段，稳定性仍在持续验证中。
 
 ## 项目结构
 
