@@ -33,10 +33,11 @@ struct SettingsTabView: View {
                         .textContentType(.password)
 
                     if let scheme = info.scheme {
+                        let shouldWarnInsecureHTTP = scheme == "http" && !sshConfig.isEnabled
                         HStack(spacing: 4) {
                             LabeledContent("Scheme", value: scheme.uppercased())
-                                .foregroundStyle(scheme == "http" ? .red : .secondary)
-                            if scheme == "http" {
+                                .foregroundStyle(shouldWarnInsecureHTTP ? .red : .secondary)
+                            if shouldWarnInsecureHTTP {
                                 Image(systemName: "info.circle.fill")
                                     .foregroundStyle(.red)
                                     .help(schemeHelpText(info: info))
