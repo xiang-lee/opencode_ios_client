@@ -49,20 +49,26 @@ struct ContentView: View {
         }
     }
 
+    private func restoreConnectionFlow() async {
+        if state.sshTunnelManager.config.isEnabled,
+           state.sshTunnelManager.status != .connected {
+            await state.sshTunnelManager.connect()
+        }
+
+        await state.refresh()
+        if state.isConnected {
+            state.connectSSE()
+        }
+    }
+
     var body: some View {
         rootLayout
         .task {
-            await state.refresh()
-            if state.isConnected {
-                state.connectSSE()
-            }
+            await restoreConnectionFlow()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             Task {
-                await state.refresh()
-                if state.isConnected {
-                    state.connectSSE()
-                }
+                await restoreConnectionFlow()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
