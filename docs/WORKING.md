@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- **最后更新**：2026-02-13
+- **最后更新**：2026-02-15
 - **Phase**：Phase 3 完成 + SSH Tunnel 基础设施
 - **编译**：✅ 通过（iphonesimulator / generic destination）
 - **测试**：✅ 所有测试通过（含 SSH tunnel 相关测试）
@@ -38,6 +38,9 @@
 - [x] **SSH UX 完整化**：Settings 增加「Copy Public Key」「Reverse Tunnel Command + Copy」与灰字提示（启用 SSH 后需点上方 Test Connection）
 - [x] **Session 快速切换竞态修复（全量拉取）**：对 `loadMessages/loadSessionDiff` 增加 requestedSessionID 校验，丢弃过期响应，避免 A→B→A 后被旧 B 结果覆盖
 - [x] **Activity Row 提前 completed（二次）修复**：`running/completed` 判定改为“当前 turn + busy 状态优先”，不再依赖 `completedAt == nil`，避免仍在运行时误显示 completed
+- [x] **SSH UX 修复**：默认 Server Address 改为 `127.0.0.1:4096`；开启 SSH 后配置变更自动重连；View Public Key 在 enabled 场景不再空白；`Set Server Address` CTA 改为显式蓝色按钮
+- [x] **Settings 关闭按钮一致性**：sheet 右上角改为英文 `Close`，避免英文界面出现中文“关闭”
+- [x] **Localization 规划**：新增 `docs/dev_localization.md`，给出 en/zh-Hans 双语落地路线与分批迁移计划
 
 ## 已完成
 

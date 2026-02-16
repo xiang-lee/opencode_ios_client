@@ -248,7 +248,7 @@ Diff 渲染采用 unified diff 格式（类似 GitHub），绿色背景表示新
 
 #### 4.4.1 Server Connection
 
-- Server Address：文本输入框，格式 `ip:port`，默认 `192.168.0.80:4096`
+- Server Address：文本输入框，格式 `ip:port`，默认 `127.0.0.1:4096`
 - Username：可选，默认 `opencode`
 - Password：可选，存入 Keychain
 - 连接状态指示：显示 Connected / Disconnected / Connecting
@@ -301,7 +301,7 @@ iOS App → 公网 VPS (SSH) → VPS:18080 → 家里 OpenCode (127.0.0.1:4096)
 **安全要求**：
 
 - 只支持 key-based 认证，不支持密码认证
-- 首次连接显示服务器 fingerprint（TOFU）
+- 首次连接采用 TOFU 自动信任并保存服务器 fingerprint，后续严格校验；UI 提供 fingerprint 展示与 reset trusted host
 
 #### 4.4.3 Model Presets
 

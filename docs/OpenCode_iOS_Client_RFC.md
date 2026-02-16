@@ -213,7 +213,7 @@ enum SSHKeyManager {
 
 1. **私钥保护**：使用 `kSecAttrAccessibleWhenUnlocked`，只在设备解锁时可访问
 2. **公钥传输**：用户手动复制，app 不通过网络传输公钥
-3. **TOFU**：首次连接显示服务器 fingerprint，用户确认后保存
+3. **TOFU**：首次连接自动信任并保存服务器 fingerprint（按 host:port 绑定），后续 mismatch 直接失败并提示 reset trusted host
 4. **超时**：连接超时 30 秒，自动断开并提示
 
 **错误处理**：
