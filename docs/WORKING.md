@@ -176,6 +176,8 @@
 
 8. **SSH runtime fatal（NIO channel state）**：在 Settings 页滚动等场景偶发 `Sent channel window adjust on channel in invalid state`。定位为 `SSHTunnelManager` 中从 NW 回调线程直接调用 NIO `channel.close/context.close`，导致状态机竞态；修复为统一通过 `eventLoop.execute` 调度关闭。
 
+9. **Simulator SpringBoard 崩溃（非 App 进程）**：最新崩溃日志显示 `Process: SpringBoard`，线程 `com.apple.xpc.activity.com.apple.SplashBoard` 触发 `dispatch_assert_queue`，属于模拟器系统组件异常，不是 `OpenCodeClient` 进程崩溃。结论：与当前业务代码改动无直接因果；排查优先使用“重启/抹除 simulator + 重新安装 app”路径。
+
 ## 决策记录
 
 （记录实现过程中的技术决策）
