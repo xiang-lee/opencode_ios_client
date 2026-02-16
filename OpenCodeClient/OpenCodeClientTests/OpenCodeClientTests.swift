@@ -173,6 +173,29 @@ struct OpenCodeClientTests {
         #expect(part.stateDisplay == "completed")
     }
 
+    @Test func partDecodingTodoFromMetadataWithObjectInput() throws {
+        let partJson = """
+        {"id":"p1","messageID":"m1","sessionID":"s1","type":"tool","text":null,"tool":"todowrite","callID":"c1","state":{"status":"completed","input":{},"output":"[{\\"content\\":\\"Write tests\\",\\"status\\":\\"pending\\",\\"priority\\":\\"high\\"}]","title":"1 todo","metadata":{"todos":[{"content":"Write tests","status":"pending","priority":"high"}],"input":{"todos":[{"content":"Write tests","status":"pending","priority":"high"}]},"description":"todo update"},"time":{"start":0,"end":1}},"metadata":{"input":{"todos":[{"content":"Write tests","status":"pending","priority":"high"}]},"todos":[{"content":"Write tests","status":"pending","priority":"high"}]},"files":null}
+        """
+        let data = partJson.data(using: .utf8)!
+        let part = try JSONDecoder().decode(Part.self, from: data)
+        #expect(part.toolTodos.count == 1)
+        #expect(part.toolTodos.first?.content == "Write tests")
+        #expect(part.toolTodos.first?.id.isEmpty == false)
+    }
+
+    @Test func todoItemDecodingLegacyCompletedShape() throws {
+        let json = """
+        {"content":"Task 1","completed":true}
+        """
+        let data = json.data(using: .utf8)!
+        let item = try JSONDecoder().decode(TodoItem.self, from: data)
+        #expect(item.content == "Task 1")
+        #expect(item.status == "completed")
+        #expect(item.priority == "medium")
+        #expect(item.id.isEmpty == false)
+    }
+
     @Test func messageWithPartsDecodingWithToolStateObject() throws {
         let json = """
         {"info":{"id":"m1","sessionID":"s1","role":"assistant","parentID":null,"model":{"providerID":"anthropic","modelID":"claude-3"},"time":{"created":0,"completed":null},"finish":null},"parts":[{"id":"p1","messageID":"m1","sessionID":"s1","type":"text","text":"Hello","tool":null,"callID":null,"state":null,"metadata":null,"files":null},{"id":"p2","messageID":"m1","sessionID":"s1","type":"tool","text":null,"tool":"read_file","callID":"c1","state":{"status":"running","input":{},"time":{"start":0}},"metadata":null,"files":null}]}

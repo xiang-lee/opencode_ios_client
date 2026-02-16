@@ -91,6 +91,21 @@ struct PartStateBridge: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
+
+        func decodeTodos(from obj: Any) -> [TodoItem]? {
+            guard JSONSerialization.isValidJSONObject(obj) else { return nil }
+            guard let data = try? JSONSerialization.data(withJSONObject: obj) else { return nil }
+            return try? JSONDecoder().decode([TodoItem].self, from: data)
+        }
+
+        func decodeTodosFromJSONText(_ text: String?) -> [TodoItem]? {
+            guard let text else { return nil }
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return nil }
+            guard let data = trimmed.data(using: .utf8) else { return nil }
+            return try? JSONDecoder().decode([TodoItem].self, from: data)
+        }
+
         if let str = try? container.decode(String.self) {
             displayString = str
             title = nil
@@ -108,19 +123,14 @@ struct PartStateBridge: Codable {
             }
             var tit: String? = dict["title"]?.value as? String
             var out: String? = dict["output"]?.value as? String
-            if let meta = dict["metadata"]?.value as? [String: AnyCodable] {
-                if out == nil, let o = meta["output"]?.value as? String { out = o }
-                if tit == nil, let d = meta["description"]?.value as? String { tit = d }
+            if let meta = dict["metadata"]?.value as? [String: Any] {
+                if out == nil, let o = meta["output"] as? String { out = o }
+                if tit == nil, let d = meta["description"] as? String { tit = d }
             }
             var inp: String?
             var pathInp: String?
             var todoList: [TodoItem]?
 
-            func decodeTodos(_ obj: Any) -> [TodoItem]? {
-                guard JSONSerialization.isValidJSONObject(obj) else { return nil }
-                guard let data = try? JSONSerialization.data(withJSONObject: obj) else { return nil }
-                return try? JSONDecoder().decode([TodoItem].self, from: data)
-            }
             if let inputVal = dict["input"]?.value {
                 if let inputStr = inputVal as? String {
                     inp = inputStr
@@ -142,7 +152,7 @@ struct PartStateBridge: Codable {
                     if let d = inputDict {
                         inp = getStr(d, "command") ?? getStr(d, "path")
 
-                        if let todosObj = d["todos"], let decoded = decodeTodos(todosObj) {
+                        if let todosObj = d["todos"], let decoded = decodeTodos(from: todosObj) {
                             todoList = decoded
                         }
 
@@ -167,8 +177,14 @@ struct PartStateBridge: Codable {
                 pathInp = nil
             }
 
-            if todoList == nil, let meta = dict["metadata"]?.value as? [String: AnyCodable], let todosObj = meta["todos"]?.value {
-                todoList = decodeTodos(todosObj)
+            if todoList == nil,
+               let meta = dict["metadata"]?.value as? [String: Any],
+               let todosObj = meta["todos"] {
+                todoList = decodeTodos(from: todosObj)
+            }
+
+            if todoList == nil {
+                todoList = decodeTodosFromJSONText(out)
             }
 
             pathFromInput = pathInp
@@ -228,6 +244,57 @@ struct Part: Codable, Identifiable {
         let title: String?
         let input: String?
         let todos: [TodoItem]?
+
+        private enum CodingKeys: String, CodingKey {
+            case path
+            case title
+            case input
+            case todos
+        }
+
+        init(path: String?, title: String?, input: String?, todos: [TodoItem]?) {
+            self.path = path
+            self.title = title
+            self.input = input
+            self.todos = todos
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+
+            path = try? c.decode(String.self, forKey: .path)
+            title = try? c.decode(String.self, forKey: .title)
+
+            if let inputString = try? c.decode(String.self, forKey: .input) {
+                input = inputString
+            } else if let inputObject = try? c.decode([String: AnyCodable].self, forKey: .input),
+                      JSONSerialization.isValidJSONObject(inputObject.mapValues({ $0.value })),
+                      let data = try? JSONSerialization.data(withJSONObject: inputObject.mapValues({ $0.value })),
+                      let text = String(data: data, encoding: .utf8) {
+                input = text
+            } else {
+                input = nil
+            }
+
+            if let decoded = try? c.decode([TodoItem].self, forKey: .todos) {
+                todos = decoded
+            } else if let raw = try? c.decode([AnyCodable].self, forKey: .todos),
+                      JSONSerialization.isValidJSONObject(raw.map({ $0.value })),
+                      let data = try? JSONSerialization.data(withJSONObject: raw.map({ $0.value })),
+                      let decoded = try? JSONDecoder().decode([TodoItem].self, from: data) {
+                todos = decoded
+            } else {
+                todos = nil
+            }
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encodeIfPresent(path, forKey: .path)
+            try c.encodeIfPresent(title, forKey: .title)
+            try c.encodeIfPresent(input, forKey: .input)
+            try c.encodeIfPresent(todos, forKey: .todos)
+        }
     }
 
     var isText: Bool { type == "text" }
