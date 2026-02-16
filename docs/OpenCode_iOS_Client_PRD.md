@@ -20,7 +20,7 @@ OpenCode iOS Client 是一个面向 OpenCode 服务端的原生 iOS 远程控制
 
 **场景 B — 快速纠偏**：手机上看到 AI 走偏了，正在用错误的方法实现某个功能。快速发一条消息："停，不要用继承，改用组合模式"，然后放回口袋。
 
-**场景 C — 模型 A/B 测试**：想比较 Claude Opus 和 Gemini 2.5 Pro 对同一个任务的表现。在手机上一键切到另一个模型，发送相同的指令，观察差异。
+**场景 C — 模型 A/B 测试**：想比较不同模型（如 GPT-5.3 Codex / Spark / Opus / GLM5）对同一个任务的表现。在手机上一键切到另一个模型，发送相同的指令，观察差异。
 
 **场景 D — 文档审查**：AI 完成了一轮修改，在手机上浏览 Markdown 文档的 diff，以 Preview 模式为主查看变更，确认文档改动合理后让 AI 继续下一步。代码审查为辅——AI 能力已足够写出好代码，主要需要的是文档审查。
 
@@ -168,6 +168,8 @@ iPhone 采用底部 Tab Bar，三个 Tab：
 
 **流式更新（Think Streaming）**：行为与官方 Web 客户端对齐。SSE 推送 `message.part.updated` 时，若有 `delta` 字段，客户端增量追加到对应 text/reasoning Part，实现打字机效果；若无 delta 则全量 reload。使用 `messageID` + `partID` 定位 Part。**注**：Tool output 的实时流式（如 terminal 输出逐行）当前 API 不支持，output 仅在 completed 时一次性返回。
 
+**历史消息分页加载**：为降低长会话在弱网（如 SSH tunnel / WAN）下的首屏等待，默认只拉取最近 **3 轮对话**（6 条 message：user/assistant 各 3 条）。聊天页顶部显示“下拉加载更多历史消息”，用户每次下拉再向上扩展 3 轮并重新拉取。
+
 **Activity Row 一致性规则**：运行态优先级高于 `session.status=idle` 的瞬时抖动。若仍存在 running/pending tool 或 streaming 增量，Activity Row 必须保持 running；仅在确认本轮 assistant 已完成后才进入 completed。
 
 **Session 状态指示器**：消息流顶部显示当前 session 状态（idle / busy / error）。状态来源于 `session.status` SSE 事件。busy 时显示进度动画。
@@ -202,7 +204,7 @@ OpenCode 绝大多数情况下不会请求 permission，若出现 `permission.as
 
 从 Chat Tab 顶部左侧的按钮进入 Session 列表（slide-over 或 navigation push）。**列出 workspace 下所有已有 Session**，是重要的功能验证手段：可验证连接是否正确、API 解析是否正常、消息/状态能否正确展示。
 
-列表显示所有 Session，按时间倒序。每个条目显示：标题、创建时间、消息数、状态（idle/busy）。支持新建 Session、切换 Session。**删除 Session 暂未实现**。
+列表显示所有 Session，按时间倒序。每个条目显示：标题、更新时间、`summary.files`（该 session diff 涉及文件数）和状态（idle/busy/retry）。支持新建 Session、切换 Session。**删除 Session 暂未实现**。
 
 视觉与交互：列表文本默认使用中性色（灰）以避免 iOS 默认的“链接蓝”。当前活跃 Session 使用轻量背景色高亮，并在右侧显示选中标记。
 
@@ -375,7 +377,7 @@ iOS App → 公网 VPS (SSH) → VPS:18080 → 家里 OpenCode (127.0.0.1:4096)
 App 进入前台
   ├── 调用 GET /global/health 确认 server 存活
   ├── 调用 GET /session 拉取 session 列表
-  ├── 调用 GET /session/:id/message 拉取当前 session 的完整消息
+  ├── 调用 GET /session/:id/message?limit=6 拉取当前 session 最近 3 轮消息
   ├── 调用 GET /session/status 拉取所有 session 状态
   └── 建立 SSE 连接到 GET /global/event
       └── 后续增量更新由 SSE 驱动
@@ -397,7 +399,7 @@ App 进入前台
 | POST | `/session` | 创建 Session |
 | GET | `/session/:id` | Session 详情 |
 | DELETE | `/session/:id` | 删除 Session |
-| GET | `/session/:id/message` | 消息列表 |
+| GET | `/session/:id/message` | 消息列表（支持 `limit`，默认先拉最近 6 条） |
 | POST | `/session/:id/message` | 发送消息 |
 | POST | `/session/:id/prompt_async` | 异步发送消息 |
 | POST | `/session/:id/abort` | 中止运行 |
@@ -607,7 +609,7 @@ App 进入前台
 
 ## 9. 已知限制与风险
 
-**网络依赖**：App 完全依赖与 OpenCode Server 的网络连接。如果 Server 不可达（不在同一网络、Server 未启动），App 无法使用。初期只支持局域网直连，后续可以通过 Tailscale/Cloudflare Tunnel 等方案扩展到远程访问。
+**网络依赖**：App 完全依赖与 OpenCode Server 的网络连接。如果 Server 不可达（网络不通、Server 未启动），App 无法使用。当前支持局域网直连与 SSH tunnel 远程访问；弱网下通过“最近 3 轮 + 下拉扩展历史”降低首屏延迟。
 
 **SSE 在 iOS 上的行为**：iOS 会在 App 进入后台后积极断开网络连接。需要实现可靠的重连和状态恢复机制。不建议在后台保持 SSE 连接。
 
@@ -627,7 +629,7 @@ App 进入前台
 
 4. **多项目支持**：暂不实现。
 
-5. **默认 Server**：`192.168.0.80:4096`。默认无认证，但需实现 Basic Auth 支持（可选配置）。
+5. **默认 Server**：`127.0.0.1:4096`。默认无认证，但需实现 Basic Auth 支持（可选配置）。
 
 ## 11. 实现起步指南
 
@@ -662,7 +664,7 @@ App 进入前台
 
 ### 11.4 与 OpenCode Server 的对接
 
-默认 Server 地址：`192.168.0.80:4096`（无认证）。若 Server 启用了 `OPENCODE_SERVER_PASSWORD` 等，在 Settings 中配置 Username/Password 即可。确保本机或局域网内有运行中的 OpenCode Server（`opencode serve` 或 `opencode web`）。
+默认 Server 地址：`127.0.0.1:4096`（无认证）。若 Server 启用了 `OPENCODE_SERVER_PASSWORD` 等，在 Settings 中配置 Username/Password 即可。局域网直连时可改为内网地址；远程场景可通过 SSH tunnel 转发到本地 `127.0.0.1:4096`。
 
 ---
 

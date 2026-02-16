@@ -39,7 +39,7 @@
 
 - 最低 iOS 17（使用 Observation 框架）
 - 不引入本地 AI 推理、文件系统或 shell 能力
-- 初期仅支持局域网直连，后续可扩展至 Tailscale 等
+- 支持局域网直连与 SSH tunnel 远程访问；公网场景要求 HTTPS 或 SSH 转发
 
 ---
 
@@ -129,9 +129,16 @@ let channel = try await client.createDirectTCPIPChannel(
 #### 3.1 REST API
 
 - 使用 `URLSession` 封装 `APIClient`
-- 统一 Base URL：`http://<ip>:<port>`，默认 `192.168.0.80:4096`，来自 Settings
+- 统一 Base URL：`http://<ip>:<port>` 或 `https://<host>:<port>`，默认 `127.0.0.1:4096`，来自 Settings
 - 所有请求附加 Basic Auth header（若配置）
 - 推荐使用 `POST /session/:id/prompt_async` 发送消息，busy 时由服务端排队
+
+#### 3.1.1 消息分页拉取（已实现）
+
+- `GET /session/:id/message` 使用 `limit` 参数分页拉取，默认加载最近 6 条 message（3 轮 user/assistant）
+- 用户在 Chat 顶部下拉触发“加载更多历史消息”后，`limit` 每次增加 6 并重新拉取
+- 目标是把弱网首屏时延从“全量历史”收敛到“最近可操作上下文”
+- 注意：`limit` 统计单位是 **message**，不是 tool 调用次数。一个 assistant message 可包含多个 tool/text/reasoning parts
 
 #### 3.2 SSE 连接
 
@@ -255,6 +262,7 @@ final class AppState {
 #### 5.1 消息流
 
 - **布局**：OpenCode 风格，无左右气泡；人类消息灰色背景，AI 消息白/透明
+- **单位语义**：一个 message 可包含多个 part（tool/reasoning/text 等）。tool 调用计入 part，不单独计为 message
 - **Part 渲染**：text (Markdown)、reasoning (折叠)、tool (卡片)、patch (跳转 Files)。tool/patch 若含文件路径，点击可「在 File Tree 中打开」预览；其中 `todowrite` tool 需渲染为 Task List（todo）视图，并响应 SSE `todo.updated`。Todo 仅在 tool 卡片内展示，不在 Chat 顶部常驻（方案 B）
 - **iPad 大屏密度**：在 `horizontalSizeClass == .regular` 时，tool/patch/permission 卡片可用三列网格横向填充；text part 仍整行显示（避免阅读断裂）
 - **流式（Think Streaming）**：`message.part.updated` 带 `delta` 时追加到对应 Part，实现打字机效果；无 delta 时全量 reload。Tool 卡片：running 展开、completed 默认收起
@@ -297,6 +305,7 @@ final class AppState {
 - **模型选择**：按 sessionID 记忆当前选择的模型；切换 Session 自动恢复（避免全局 model 覆盖）
 - **语音输入**：输入框右侧麦克风按钮；录音后调用 AI Builder `POST /v1/audio/transcriptions` 转写，结果追加到输入框；Base URL 与 token 在 Settings → Speech Recognition 配置并存 Keychain
 - **Abort**：提供按钮调用 `POST /session/:id/abort`
+- **历史加载交互**：Chat 顶部显示“下拉加载更多历史消息”提示；加载中显示“正在加载更多历史消息...”，支持中英文本地化
 
 ### 7. 文件与 Diff
 
