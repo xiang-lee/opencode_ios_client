@@ -12,10 +12,32 @@ struct FileContentView: View {
     @State private var content: String?
     @State private var isLoading = false
     @State private var loadError: String?
-    @State private var showPreview = true  // true = Markdown preview, false = raw/editor
+    @State private var showPreview = true
 
     private var isMarkdown: Bool {
         filePath.lowercased().hasSuffix(".md") || filePath.lowercased().hasSuffix(".markdown")
+    }
+
+    private var fileName: String {
+        filePath.split(separator: "/").last.map(String.init) ?? filePath
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        if let content {
+            ToolbarItem(placement: .primaryAction) {
+                ShareLink(item: content, subject: Text(fileName)) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+            }
+        }
+        if isMarkdown {
+            ToolbarItem(placement: .primaryAction) {
+                Button(showPreview ? "Markdown" : "Preview") {
+                    showPreview.toggle()
+                }
+            }
+        }
     }
 
     var body: some View {
@@ -31,17 +53,9 @@ struct FileContentView: View {
                 ContentUnavailableView("No content", systemImage: "doc.text")
             }
         }
-        .navigationTitle(filePath.split(separator: "/").last.map(String.init) ?? filePath)
+        .navigationTitle(fileName)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if isMarkdown {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(showPreview ? "Markdown" : "Preview") {
-                        showPreview.toggle()
-                    }
-                }
-            }
-        }
+        .toolbar { toolbarContent }
         .onAppear {
             loadContent()
         }

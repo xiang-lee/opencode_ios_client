@@ -40,6 +40,10 @@ struct SplitSidebarView: View {
                             }
                         }
                         .frame(height: filesHeight)
+                        .refreshable {
+                            await state.loadFileTree()
+                            await state.loadFileStatus()
+                        }
 
                     Divider()
                         .frame(height: dividerHeight)
