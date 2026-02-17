@@ -726,6 +726,7 @@ final class AppState {
     func loadFileTree() async {
         do {
             fileTreeRoot = try await apiClient.fileList(path: "")
+            fileChildrenCache = [:]
         } catch {
             fileTreeRoot = []
         }
