@@ -50,3 +50,6 @@ Thumbs.db
 
 # Security notes (local only)
 docs/security.md
+
+# Environment variables (contains credentials)
+.env

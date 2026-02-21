@@ -4,13 +4,22 @@
 
 ## 当前状态
 
-- **最后更新**：2026-02-16
-- **Phase**：Phase 3 完成 + SSH Tunnel 基础设施
+- **最后更新**：2026-02-20
+- **Phase**：Phase 3 完成 + SSH Tunnel 基础设施 + Agent 选择功能（进行中）
 - **编译**：✅ 通过（iphonesimulator / generic destination）
 - **测试**：✅ 所有测试通过（含 SSH tunnel 相关测试）
 
 ## 进行中
 
+- [ ] **Agent 选择功能（2026-02-20 新增）**：
+  - [x] RFC/PRD 更新：添加 Agent 数据模型、API、UI 设计
+  - [ ] 实现 `AgentInfo` 数据模型
+  - [ ] 实现 `APIClient.agents()` 方法
+  - [ ] 更新 `AppState`：添加 agents 列表、selectedAgentIndex、loadAgents()
+  - [ ] 更新模型列表：Opus 4.6 / Sonnet 4.6 / GPT-5.3 Codex / GPT-5.2 / Gemini 3.1 Pro / Gemini 3 Flash
+  - [ ] 更新 `ChatToolbarView`：chip 横向滚动改为下拉列表（Model + Agent）
+  - [ ] 更新 `promptAsync`：传递选中的 agent
+  - [ ] 单元测试：Agent API 解码
 - [x] **渲染性能优化 1/3（行级去全局状态订阅）**：`MessageRowView/ToolPartView/PatchPartView` 移除 `@Bindable AppState` 直连，改为最小必要数据 + 文件打开回调，降低长会话下无关状态变更触发的整页重算
 - [x] **渲染性能优化 2/3（Scroll Anchor 轻量化）**：`scrollAnchor` 从“全量拼接所有 message/streaming 字符串”改为基于 `messageCount + lastMessageSignature + streaming chars` 的 O(1)/小常量签名，避免长会话下每次状态变化都全量遍历
 - [x] **渲染性能优化 3/3（Markdown 快速路径）**：对纯文本消息走 `Text` 渲染，仅在检测到 Markdown 语法特征时使用 `MarkdownUI`，降低长会话中大量普通文本消息的解析与布局开销

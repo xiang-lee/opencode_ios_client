@@ -249,6 +249,11 @@ final class AppState {
     var messages: [MessageWithParts]
     var partsByMessage: [String: [Part]]
     var selectedModelIndex: Int
+    
+    // Agent 选择（2026-02 新增）
+    var agents: [AgentInfo]           // 从 GET /agent 获取
+    var selectedAgentIndex: Int       // 当前选中的 agent
+    
     // SessionStore, MessageStore, FileStore, TodoStore 等
 }
 ```
@@ -256,6 +261,28 @@ final class AppState {
 - 单一 `AppState` 持有全局状态，子 store 委托 session/message/file/todo 等
 - SSE 事件根据 `type` 分发，更新对应字段
 - View 通过 `@Environment` 或直接注入访问
+
+#### 4.1 Agent 数据模型
+
+```swift
+struct AgentInfo: Codable, Identifiable {
+    var id: String { name }
+    let name: String              // agent 名称，如 "Sisyphus (Ultraworker)"
+    let description: String?      // 描述
+    let mode: String?             // "primary" 或 "subagent"
+    let hidden: Bool?             // 是否隐藏（隐藏的 agent 不在 UI 显示）
+}
+```
+
+#### 4.2 Agent API
+
+| 方法 | 路径 | 说明 | 响应 |
+|------|------|------|------|
+| GET | `/agent` | 列出所有 Agent | `AgentInfo[]` |
+
+- App 启动时后台调用此 API 获取 agent 列表
+- 过滤 `hidden != true` 的 agents 后显示在 UI
+- 默认选择第一个 primary agent（通常是 `Sisyphus`）
 
 ### 5. 消息与文档 UI
 
@@ -303,6 +330,7 @@ final class AppState {
 - **输入**：支持多行，发送用 `prompt_async`；busy 时消息由服务端排队
 - **草稿**：按 sessionID 持久化未发送输入；切换 session 可恢复；发送成功后清空
 - **模型选择**：按 sessionID 记忆当前选择的模型；切换 Session 自动恢复（避免全局 model 覆盖）
+- **Agent 选择**：按 sessionID 记忆当前选择的 agent（与 model 同理）；发送消息时在 body 中携带 `agent: string` 字段
 - **语音输入**：输入框右侧麦克风按钮；录音后调用 AI Builder `POST /v1/audio/transcriptions` 转写，结果追加到输入框；Base URL 与 token 在 Settings → Speech Recognition 配置并存 Keychain
 - **Abort**：提供按钮调用 `POST /session/:id/abort`
 - **历史加载交互**：Chat 顶部显示“下拉加载更多历史消息”提示；加载中显示“正在加载更多历史消息...”，支持中英文本地化
@@ -321,8 +349,9 @@ final class AppState {
 - **可拖动**：三栏宽度支持拖动调整；以上为默认 ideal 宽度
 - **文件预览**：iPad 上不使用 sheet。左栏选择文件、或 Chat 中点击 tool/patch 的 file path 时，更新中栏 Preview 预览对应文件
 - **刷新**：Preview 中栏右上角提供刷新按钮（重新加载文件内容），用于外部变更后的手动刷新
-- **Toolbar**：第一行统一：左（Session 列表、重命名、Compact、新建 Session）+ 右（模型切换、Context Usage ring、**Settings 按钮**）；Settings 点击以 sheet 打开
-- **模型标签**：iPhone 上使用短名（`GPT` / `Spark` / `Opus` / `GLM`）以适配窄宽；iPad 上显示全称
+- **Toolbar**：第一行统一：左（Session 列表、重命名、Compact、新建 Session）+ 右（模型下拉列表、Agent 下拉列表、Context Usage ring、**Settings 按钮**）；Settings 点击以 sheet 打开
+- **模型与 Agent 选择器**：原 chip 横向滚动改为下拉列表（Menu + Picker）。模型列表固定（Opus 4.6 / Sonnet 4.6 / GPT-5.3 Codex / GPT-5.2 / Gemini 3.1 Pro / Gemini 3 Flash）；Agent 列表从 `GET /agent` 动态获取（过滤 hidden）
+- **模型标签**：iPhone 上使用短名（`Opus` / `Sonnet` / `GPT` / `Gemini`）以适配窄宽；iPad 上显示全称
 - **实现**：`@Environment(\.horizontalSizeClass)` 分支：regular 时渲染三栏 split，小屏时渲染 `TabView`；iPad 用 `previewFilePath` 驱动中栏预览，iPhone 保留 `fileToOpenInFilesTab` 走 sheet / tab 跳转
 
 ### 9. Context Usage（上下文占用）

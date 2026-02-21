@@ -117,21 +117,37 @@ iPhone 采用底部 Tab Bar，三个 Tab：
 
 ### 4.2 Chat Tab（主交互界面）
 
-这是 App 的核心。顶部是模型切换条，中间是消息流，底部是输入框。
+这是 App 的核心。顶部是模型与 Agent 选择器，中间是消息流，底部是输入框。
 
-#### 4.2.1 模型切换条
+#### 4.2.1 模型与 Agent 选择器
 
-位于 Chat 页面顶部，横向滚动的 chip 列表。每个 chip 代表一个预设模型（在 Settings 中配置），格式如 "Claude Opus" / "Gemini 2.5 Pro" / "GPT-4.1"。点击切换，下一条消息将使用选中的模型。当前选中的 chip 高亮显示。
+位于 Chat 页面顶部的右侧 toolbar 区域。采用**下拉列表**（Menu + Picker）形式，取代原有的 chip 横向滚动条。
 
-**iPhone 显示策略**：为避免顶栏被挤压，iPhone 上 chip 采用短名（`GPT` / `Spark` / `Opus` / `GLM`）；iPad 上显示全称。
+**模型选择器**：下拉列表，包含以下固定选项：
 
-技术实现：切换模型不需要调用 API，只是改变本地状态。发送消息时在 `POST /session/:id/message` 的 body 中携带 `model: { providerID, modelID }` 字段。OpenCode 的设计本身就支持 per-message 的模型指定。
+| 显示名称 | providerID | modelID |
+|----------|------------|---------|
+| Opus 4.6 | `anthropic` | `claude-opus-4-6` |
+| Sonnet 4.6 | `anthropic` | `claude-sonnet-4-6` |
+| GPT-5.3 Codex | `openai` | `gpt-5.3-codex` |
+| GPT-5.2 | `openai` | `gpt-5.2` |
+| Gemini 3.1 Pro | `google` | `gemini-3.1-pro` |
+| Gemini 3 Flash | `google` | `gemini-3-flash` |
 
-补充：**模型选择按 Session 记忆**。每个 Session 维护独立的“当前使用模型”，切换 Session 时自动恢复该 Session 上次选择的模型，避免被全局状态覆盖。
+**Agent 选择器**：下拉列表，内容从 `GET /agent` API 动态获取。过滤 `hidden != true` 的 agents 后显示。每个选项显示 agent 名称（如 `Sisyphus`），description 可作为 tooltip 或 subtitle。
+
+**iPhone 显示策略**：iPhone 上使用短名（`Opus` / `Sonnet` / `GPT` / `Gemini`）以适配窄宽；iPad 上显示全称。
+
+**技术实现**：
+- 切换模型/Agent 不需要调用 API，只是改变本地状态
+- 发送消息时在 `POST /session/:id/prompt_async` 的 body 中携带：
+  - `model: { providerID, modelID }` 字段
+  - `agent: string` 字段（agent 名称）
+- 模型和 Agent 选择均按 Session 记忆，切换 Session 时自动恢复
 
 #### 4.2.1.1 Context Usage（上下文占用）指示器
 
-在 Chat 顶部右侧（模型切换条与齿轮之间）显示一个**环形进度**，表示当前 session 最近一次生成时的上下文窗口占用情况。
+在 Chat 顶部右侧（Agent 选择器与齿轮之间）显示一个**环形进度**，表示当前 session 最近一次生成时的上下文窗口占用情况。
 
 - **数据来源**：`GET /session/:id/message` 返回的 assistant message `info.tokens.total`（以及 input/output/reasoning/cache），并结合 `GET /config/providers` 中该 `providerID/modelID` 的 `limit.context`。
 - **Provider Config 加载**：`GET /config/providers` 结果会缓存；若未加载/为空，点击 ring 时应自动触发加载并显示 loading；失败时在 sheet 中展示错误信息，而不是只显示 “Provider config not loaded”。
@@ -411,6 +427,7 @@ App 进入前台
 | GET | `/file/status` | 文件 git 状态 |
 | GET | `/find/file?query=...` | 文件搜索 |
 | GET | `/config/providers` | 可用 Provider 和模型列表 |
+| GET | `/agent` | 可用 Agent 列表 |
 | GET | `/project` | 项目列表 |
 | GET | `/project/current` | 当前项目 |
 
