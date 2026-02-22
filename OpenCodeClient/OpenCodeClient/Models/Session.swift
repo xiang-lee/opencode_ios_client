@@ -20,6 +20,7 @@ struct Session: Codable, Identifiable {
     struct TimeInfo: Codable {
         let created: Int
         let updated: Int
+        let archived: Int?
     }
 
     struct ShareInfo: Codable {

@@ -76,6 +76,7 @@ enum L10n {
         case settingsUntrusted
         case settingsRotate
 
+        case settingsShowArchivedSessions
         case settingsConnecting
 
         case chatInputPlaceholder
@@ -262,6 +263,7 @@ enum L10n {
         Key.settingsCommandCopied.rawValue: "Command Copied",
         Key.settingsUntrusted.rawValue: "Untrusted",
         Key.settingsRotate.rawValue: "Rotate",
+        Key.settingsShowArchivedSessions.rawValue: "Show Archived Sessions",
         Key.settingsConnecting.rawValue: "Connecting...",
 
         Key.chatInputPlaceholder.rawValue: "Ask anything...",
@@ -451,6 +453,7 @@ enum L10n {
         Key.errorServerAddressEmpty.rawValue: "服务器地址不能为空",
         Key.errorWanRequiresHttps.rawValue: "WAN 地址必须使用 HTTPS",
         Key.errorUsingLanHttp.rawValue: "正在使用 LAN HTTP",
+        Key.settingsShowArchivedSessions.rawValue: "显示已归档会话",
         Key.settingsConnecting.rawValue: "连接中...",
 
         Key.chatInputPlaceholder.rawValue: "输入你的问题...",

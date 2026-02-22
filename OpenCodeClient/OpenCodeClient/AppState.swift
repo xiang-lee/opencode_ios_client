@@ -132,6 +132,7 @@ final class AppState {
     private static let aiBuilderLastOKTestedAtKey = "aiBuilderLastOKTestedAt"
     private static let draftInputsBySessionKey = "draftInputsBySession"
     private static let selectedModelBySessionKey = "selectedModelBySession"
+    private static let showArchivedSessionsKey = "showArchivedSessions"
 
     init() {
         if let storedServer = UserDefaults.standard.string(forKey: Self.serverURLKey) {
@@ -151,6 +152,7 @@ final class AppState {
         _aiBuilderToken = KeychainHelper.load(forKey: Self.aiBuilderTokenKeychainKey) ?? ""
         _aiBuilderCustomPrompt = UserDefaults.standard.string(forKey: Self.aiBuilderCustomPromptKey) ?? Self.defaultAIBuilderCustomPrompt
         _aiBuilderTerminology = UserDefaults.standard.string(forKey: Self.aiBuilderTerminologyKey) ?? Self.defaultAIBuilderTerminology
+        _showArchivedSessions = UserDefaults.standard.bool(forKey: Self.showArchivedSessionsKey)
 
         // Restore last known-good AI Builder connection state if token/baseURL unchanged.
         let storedSig = UserDefaults.standard.string(forKey: Self.aiBuilderLastOKSignatureKey)
@@ -344,7 +346,11 @@ final class AppState {
     private let todoStore = TodoStore()
 
     var sessions: [Session] { get { sessionStore.sessions } set { sessionStore.sessions = newValue } }
-    var sortedSessions: [Session] { sessions.sorted { $0.time.updated > $1.time.updated } }
+    var sortedSessions: [Session] {
+        sessions
+            .filter { showArchivedSessions || $0.time.archived == nil }
+            .sorted { $0.time.updated > $1.time.updated }
+    }
     var currentSessionID: String? { get { sessionStore.currentSessionID } set { sessionStore.currentSessionID = newValue } }
     var sessionStatuses: [String: SessionStatus] { get { sessionStore.sessionStatuses } set { sessionStore.sessionStatuses = newValue } }
 
@@ -372,6 +378,15 @@ final class AppState {
     ]
     var selectedAgentIndex: Int = 0
     var isLoadingAgents: Bool = false
+
+    var showArchivedSessions: Bool {
+        get { _showArchivedSessions }
+        set {
+            _showArchivedSessions = newValue
+            UserDefaults.standard.set(newValue, forKey: Self.showArchivedSessionsKey)
+        }
+    }
+    private var _showArchivedSessions: Bool = false
 
     var pendingPermissions: [PendingPermission] = []
 

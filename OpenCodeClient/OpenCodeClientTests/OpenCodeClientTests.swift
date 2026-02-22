@@ -1332,3 +1332,52 @@ struct ModelPresetShortNameTests {
         #expect(preset.shortName == "Custom Model")
     }
 }
+
+struct ArchivedSessionTests {
+    @Test func sessionDecodingWithArchived() throws {
+        let json = """
+        {"id":"s1","slug":"s1","projectID":"p1","directory":"/tmp","parentID":null,"title":"Test","version":"1","time":{"created":1000,"updated":2000,"archived":1500},"share":null,"summary":null}
+        """
+        let data = json.data(using: .utf8)!
+        let session = try JSONDecoder().decode(Session.self, from: data)
+        #expect(session.time.archived == 1500)
+    }
+
+    @Test @MainActor func filteredSessionsHidesArchivedByDefault() {
+        let state = AppState()
+        state.showArchivedSessions = false
+        
+        let s1 = makeSession(id: "s1", archived: nil)
+        let s2 = makeSession(id: "s2", archived: 123)
+        state.sessions = [s1, s2]
+        
+        #expect(state.sortedSessions.count == 1)
+        #expect(state.sortedSessions.first?.id == "s1")
+    }
+
+    @Test @MainActor func filteredSessionsShowsArchivedWhenEnabled() {
+        let state = AppState()
+        state.showArchivedSessions = true
+        
+        let s1 = makeSession(id: "s1", archived: nil)
+        let s2 = makeSession(id: "s2", archived: 123)
+        state.sessions = [s1, s2]
+        
+        #expect(state.sortedSessions.count == 2)
+    }
+
+    private func makeSession(id: String, archived: Int?) -> Session {
+        Session(
+            id: id,
+            slug: id,
+            projectID: "p1",
+            directory: "/tmp",
+            parentID: nil,
+            title: "Title",
+            version: "1",
+            time: .init(created: 0, updated: 0, archived: archived),
+            share: nil,
+            summary: nil
+        )
+    }
+}

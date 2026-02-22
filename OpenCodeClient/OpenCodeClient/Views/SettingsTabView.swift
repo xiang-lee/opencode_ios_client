@@ -244,6 +244,8 @@ struct SettingsTabView: View {
                         Text(L10n.t(.settingsLightTheme)).tag("light")
                         Text(L10n.t(.settingsDarkTheme)).tag("dark")
                     }
+                    
+                    Toggle(L10n.t(.settingsShowArchivedSessions), isOn: $state.showArchivedSessions)
                 }
 
                 Section(L10n.t(.settingsSpeechRecognition)) {
