@@ -335,7 +335,7 @@ struct SessionDeletionSelectionTests {
             parentID: nil,
             title: id,
             version: "1",
-            time: .init(created: 0, updated: updated),
+            time: .init(created: 0, updated: updated, archived: nil),
             share: nil,
             summary: nil
         )
