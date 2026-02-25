@@ -330,7 +330,7 @@ var customProjectPath: String = ""        // "Custom path" 时用户输入的路
 
 **背景**：`POST /session` 不支持传 directory，server 在其 current project（由启动位置或 Web/TUI 最后使用决定）下创建 session。iOS 的 Project 选择器只影响列表过滤，不改变创建目标。若允许在「选了具体 project」时创建，新 session 会落在 server default，不在过滤结果中，导致消失。
 
-**实现**：仅当 `effectiveProjectDirectory == nil`（用户选 Server default）时允许创建。当用户选了具体 project 时，新建按钮置灰，旁加 info 图标，点击显示提示：建议去服务器端（如 Web 客户端）切换启动目录，然后在此选 Server default 再创建。`canCreateSession` 控制按钮可用性。
+**实现**：仅当 `effectiveProjectDirectory == nil`（用户选 Server default）时允许创建。当用户选了具体 project 时，新建按钮置灰，旁加 info 图标，点击显示提示：需用命令行启动 OpenCode 并指定不同的工作目录，然后在此选 Server default 再创建。`canCreateSession` 控制按钮可用性。
 
 ### 5. 消息与文档 UI
 

@@ -206,9 +206,9 @@ curl -s -N -H "Accept: text/event-stream" "http://192.168.180.128:4096/global/ev
 **做过的尝试**：
 1. **mergeCurrentSessionIfMissing**：loadSessions 时若 current 不在列表，单独 fetch 并 prepend → 治标不治本，且 GET /session/:id 可能对跨 project 返回 404
 2. **session.updated 按 project 过滤**：避免其他 project 的 session 混入列表 → 保留，正确
-3. **Settings 警告 + 引导去 Web 切换** → 依赖用户主动操作，体验割裂
+3. **Settings 警告 + 引导去 Web 切换** → 错误：Web 端无法切换 working directory
 4. **移除 Project 选择（回滚）** → 未采用，保留过滤能力
 
-**最终做法**：仅在 Server default 时提供创建按钮。当用户选了具体 project 时，新建按钮置灰，旁加 info 图标，点击显示提示：建议去服务器端（如 Web 客户端）切换启动目录，然后在此选 Server default 再创建。
+**最终做法**：仅在 Server default 时提供创建按钮。当用户选了具体 project 时，新建按钮置灰，旁加 info 图标，点击显示提示：需用命令行启动 OpenCode 并指定不同的工作目录，然后在此选 Server default 再创建。
 
 **Lesson**：多 project 场景下，若 API 不支持创建时指定 project，应限制创建入口而非事后补救；过滤与创建语义分离，避免用户误以为「选了 project 就能在那创建」。
