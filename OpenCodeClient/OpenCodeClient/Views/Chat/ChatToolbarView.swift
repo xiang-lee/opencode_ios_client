@@ -139,6 +139,40 @@ struct ChatToolbarView: View {
                             .foregroundColor(.primary)
                         }
                     }
+
+                    if !state.selectedModelVariants.isEmpty {
+                        Section(L10n.t(.configureEffort)) {
+                            Button {
+                                state.setSelectedVariant(nil)
+                            } label: {
+                                HStack {
+                                    Text(AppState.displayName(forVariant: nil))
+                                    Spacer()
+                                    if state.selectedVariant == nil {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(DesignColors.Brand.primary)
+                                    }
+                                }
+                            }
+                            .foregroundColor(.primary)
+
+                            ForEach(state.selectedModelVariants, id: \.self) { variant in
+                                Button {
+                                    state.setSelectedVariant(variant)
+                                } label: {
+                                    HStack {
+                                        Text(AppState.displayName(forVariant: variant))
+                                        Spacer()
+                                        if state.selectedVariant == variant {
+                                            Image(systemName: "checkmark")
+                                                .foregroundColor(DesignColors.Brand.primary)
+                                        }
+                                    }
+                                }
+                                .foregroundColor(.primary)
+                            }
+                        }
+                    }
                     
                     Section(L10n.t(.configureAgent)) {
                         if state.isLoadingAgents {

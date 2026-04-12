@@ -84,6 +84,16 @@ struct OpenCodeClientTests {
         #expect(message.tokens?.total == 15)
     }
 
+    @Test func messageDecodingWithVariant() throws {
+        let json = """
+        {"id":"m3","sessionID":"s1","role":"assistant","parentID":"m2","providerID":"openai","modelID":"gpt-5.4","variant":"xhigh","time":{"created":0,"completed":1},"finish":"stop"}
+        """
+        let data = json.data(using: .utf8)!
+        let message = try JSONDecoder().decode(Message.self, from: data)
+        #expect(message.variant == "xhigh")
+        #expect(message.resolvedModel?.modelID == "gpt-5.4")
+    }
+
     // Regression: server.connected event has no directory; SSEEvent.directory must be optional
     @Test func sseEventDecodingWithoutDirectory() throws {
         let json = """
@@ -1472,6 +1482,7 @@ struct ActivityTrackerTests {
             providerID: nil,
             modelID: nil,
             model: nil,
+            variant: nil,
             error: nil,
             time: .init(created: created, completed: completed),
             finish: nil,
@@ -1625,6 +1636,83 @@ struct ModelSelectionPersistenceTests {
 
         #expect(state.selectedModelIndex == 0)
         #expect(state.modelPresets[state.selectedModelIndex].displayName == "GLM-5-turbo")
+    }
+}
+
+struct ModelVariantSelectionTests {
+    @Test func providerModelDecodingSupportsVariantDictionary() throws {
+        let json = """
+        {"id":"gpt-5.4","providerID":"openai","variants":{"xhigh":{"label":"Extra High"},"low":{},"medium":{}}}
+        """
+        let model = try JSONDecoder().decode(ProviderModel.self, from: Data(json.utf8))
+        #expect(Set(model.variants) == Set(["xhigh", "low", "medium"]))
+    }
+
+    @Test @MainActor func savedVariantSelectionRestoresForCurrentSession() {
+        let sessionID = "session-variant"
+        let defaultsKey = "selectedVariantBySession"
+        let originalData = UserDefaults.standard.data(forKey: defaultsKey)
+
+        defer {
+            if let originalData {
+                UserDefaults.standard.set(originalData, forKey: defaultsKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: defaultsKey)
+            }
+        }
+
+        let encoded = try! JSONEncoder().encode([sessionID: "xhigh"])
+        UserDefaults.standard.set(encoded, forKey: defaultsKey)
+
+        let state = AppState()
+        state.providerModelsIndex = [
+            "openai/gpt-5.4": ProviderModel(
+                id: "gpt-5.4",
+                name: "GPT-5.4",
+                providerID: "openai",
+                limit: nil,
+                variants: ["medium", "xhigh", "low"]
+            )
+        ]
+        state.currentSessionID = sessionID
+
+        #expect(state.selectedModelVariants == ["low", "medium", "xhigh"])
+        #expect(state.selectedVariant == "xhigh")
+        #expect(state.selectedVariantDisplayName == "Extra High")
+    }
+
+    @Test @MainActor func sendMessagePassesSelectedVariantToAPIClient() async {
+        let defaultsKey = "selectedVariantBySession"
+        let originalData = UserDefaults.standard.data(forKey: defaultsKey)
+
+        defer {
+            if let originalData {
+                UserDefaults.standard.set(originalData, forKey: defaultsKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: defaultsKey)
+            }
+        }
+
+        let apiClient = MockAPIClient()
+        let state = AppState(apiClient: apiClient, sseClient: MockSSEClient(), sshTunnelManager: SSHTunnelManager())
+        state.providerModelsIndex = [
+            "openai/gpt-5.4": ProviderModel(
+                id: "gpt-5.4",
+                name: "GPT-5.4",
+                providerID: "openai",
+                limit: nil,
+                variants: ["medium", "xhigh"]
+            )
+        ]
+        state.currentSessionID = "session-send"
+        state.setSelectedVariant("xhigh")
+
+        let succeeded = await state.sendMessage("hello")
+
+        #expect(succeeded == true)
+        #expect(await apiClient.lastPromptVariant == "xhigh")
+        #expect(await apiClient.lastPromptModel?.providerID == "openai")
+        #expect(await apiClient.lastPromptModel?.modelID == "gpt-5.4")
     }
 }
 
@@ -2158,6 +2246,8 @@ actor MockAPIClient: APIClientProtocol {
     var messagesResult: [MessageWithParts] = []
     var messagesCallCount = 0
     var promptError: Error?
+    var lastPromptModel: Message.ModelInfo?
+    var lastPromptVariant: String?
     var deletedSessionIDs: [String] = []
     var updateSessionCalls: [(String, String)] = []
     var sessionDiffResult: [FileDiff] = []
@@ -2243,7 +2333,9 @@ actor MockAPIClient: APIClientProtocol {
         return messagesResult
     }
 
-    func promptAsync(sessionID: String, text: String, agent: String, model: Message.ModelInfo?) async throws {
+    func promptAsync(sessionID: String, text: String, agent: String, model: Message.ModelInfo?, variant: String?) async throws {
+        lastPromptModel = model
+        lastPromptVariant = variant
         if let promptError { throw promptError }
     }
 
@@ -2725,6 +2817,7 @@ struct AppStateFlowTests {
             providerID: nil,
             modelID: nil,
             model: nil,
+            variant: nil,
             error: nil,
             time: .init(created: created, completed: completed),
             finish: "stop",
