@@ -1601,6 +1601,15 @@ struct ModelPresetShortNameTests {
 }
 
 struct ModelSelectionPersistenceTests {
+    @Test @MainActor func defaultPresetsIncludeGPT55() {
+        let state = AppState()
+        #expect(state.modelPresets.contains {
+            $0.displayName == "GPT-5.5" &&
+            $0.providerID == "openai" &&
+            $0.modelID == "gpt-5.5"
+        })
+    }
+
     @Test @MainActor func legacyGLM51SelectionMapsToCurrentTurboPreset() {
         let sessionID = "session-glm"
         let defaultsKey = "selectedModelBySession"

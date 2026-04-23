@@ -436,6 +436,7 @@ final class AppState {
         ModelPreset(displayName: "Opus 4.6", providerID: "anthropic", modelID: "claude-opus-4-6"),
         ModelPreset(displayName: "Sonnet 4.6", providerID: "anthropic", modelID: "claude-sonnet-4-6"),
         ModelPreset(displayName: "GPT-5.4", providerID: "openai", modelID: "gpt-5.4"),
+        ModelPreset(displayName: "GPT-5.5", providerID: "openai", modelID: "gpt-5.5"),
         ModelPreset(displayName: "GPT-5.3 Codex", providerID: "openai", modelID: "gpt-5.3-codex"),
     ]
     var selectedModelIndex: Int = 3
